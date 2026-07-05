@@ -1,0 +1,96 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import WhatsAppButton from '../components/WhatsAppButton.astro';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+}
+
+const {
+  title,
+  description = 'Velas artesanales hechas a mano en Colombia. Ilumina tu espacio con Inefable ALRO.',
+  image = '/images/logo.png',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/images/logo.png" />
+    <title>{title} · Inefable ALRO</title>
+    <meta name="description" content={description} />
+
+    <meta property="og:title" content={`${title} · Inefable ALRO`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={image} />
+    <meta property="og:type" content="website" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <Header />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+    <WhatsAppButton />
+
+    <script>
+      // Reveal-on-scroll — funcional, robusto, con try/catch (patrón "safe")
+      function safe(fn: () => void, name: string) {
+        try { fn(); } catch (e) { console.warn('[' + name + ']', e); }
+      }
+
+      function initReveals() {
+        const els = document.querySelectorAll('.reveal');
+        if (!('IntersectionObserver' in window)) {
+          els.forEach((el) => el.classList.add('is-visible'));
+          return;
+        }
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                io.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.05, rootMargin: '0px 0px -40px 0px' }
+        );
+        els.forEach((el) => io.observe(el));
+        // Red de seguridad: nada debe quedar invisible más de 6s
+        setTimeout(() => els.forEach((el) => el.classList.add('is-visible')), 6000);
+      }
+
+      function initNav() {
+        const nav = document.querySelector('[data-nav]');
+        if (!nav) return;
+        window.addEventListener('scroll', () => {
+          nav.classList.toggle('is-scrolled', window.scrollY > 40);
+        });
+        const toggle = document.querySelector('[data-nav-toggle]');
+        const menu = document.querySelector('[data-nav-menu]');
+        if (toggle && menu) {
+          toggle.addEventListener('click', () => menu.classList.toggle('is-open'));
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        safe(initReveals, 'initReveals');
+        safe(initNav, 'initNav');
+      });
+    </script>
+  </body>
+</html>

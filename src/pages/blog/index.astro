@@ -1,0 +1,64 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const dateFmt = (d: Date) => d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+---
+
+<Layout title="Blog" description="Ideas sobre aromaterapia, velas artesanales y diseño de espacios, desde Inefable ALRO.">
+  <section class="blog-hero">
+    <div class="container">
+      <p class="kicker reveal">Diario Inefable</p>
+      <h1 class="reveal">Historias sobre luz,<br /><em>aroma</em> y espacio</h1>
+    </div>
+  </section>
+
+  <section class="blog-list section-light">
+    <div class="container blog-list__grid">
+      {posts.map((post) => (
+        <a href={`/blog/${post.slug}`} class="blog-card reveal">
+          {post.data.image && <img src={post.data.image} alt={post.data.title} />}
+          <div class="blog-card__body">
+            <span class="blog-card__date">{dateFmt(post.data.date)}</span>
+            <h2>{post.data.title}</h2>
+            <p>{post.data.description}</p>
+            <span class="blog-card__link">Leer artículo →</span>
+          </div>
+        </a>
+      ))}
+      {posts.length === 0 && <p>Muy pronto compartiremos nuestras primeras historias.</p>}
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .blog-hero { padding: 180px 0 70px; background: var(--bg-2); }
+  .blog-list__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 40px;
+  }
+  .blog-card {
+    display: block;
+    color: var(--ink);
+    border: 1px solid rgba(32,26,18,0.1);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: #fff;
+    transition: transform .3s ease, box-shadow .3s ease;
+  }
+  .blog-card:hover { transform: translateY(-4px); box-shadow: 0 16px 32px rgba(32,26,18,0.12); }
+  .blog-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+  .blog-card__body { padding: 26px; }
+  .blog-card__date { font-size: 0.78rem; letter-spacing: 0.04em; color: #a8875f; text-transform: uppercase; }
+  .blog-card__body h2 { font-size: 1.3rem; margin: 10px 0 8px; }
+  .blog-card__body p { font-size: 0.92rem; color: #5a4d3a; }
+  .blog-card__link { font-size: 0.85rem; color: var(--accent-2); font-weight: 500; }
+
+  @media (max-width: 780px) {
+    .blog-list__grid { grid-template-columns: 1fr; }
+  }
+</style>

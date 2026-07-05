@@ -1,0 +1,23 @@
+backend:
+  name: git-gateway
+  branch: main
+
+# Esto activa el login mediante Netlify Identity — se configura al conectar el sitio a Netlify.
+publish_mode: simple
+media_folder: "public/images/blog"
+public_folder: "/images/blog"
+
+collections:
+  - name: "blog"
+    label: "Blog"
+    folder: "src/content/blog"
+    create: true
+    slug: "{{slug}}"
+    extension: "md"
+    fields:
+      - { label: "Título", name: "title", widget: "string" }
+      - { label: "Descripción (para SEO)", name: "description", widget: "text" }
+      - { label: "Fecha de publicación", name: "date", widget: "datetime" }
+      - { label: "Imagen destacada", name: "image", widget: "image", required: false }
+      - { label: "Borrador (no publicar aún)", name: "draft", widget: "boolean", default: false, required: false }
+      - { label: "Contenido", name: "body", widget: "markdown" }

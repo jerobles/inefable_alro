@@ -1,0 +1,112 @@
+---
+const links = [
+  { href: '/', label: 'Inicio' },
+  { href: '/#historia', label: 'Nuestra historia' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/curso', label: 'Taller de velas' },
+];
+---
+
+<header class="site-header" data-nav>
+  <div class="container site-header__inner">
+    <a href="/" class="site-header__brand">
+      <img src="/images/logo.png" alt="Inefable ALRO" width="44" height="44" />
+      <span>Inefable <em>ALRO</em></span>
+    </a>
+
+    <button class="site-header__toggle" data-nav-toggle aria-label="Abrir menú">
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="site-header__nav" data-nav-menu>
+      {links.map((link) => (
+        <a href={link.href}>{link.label}</a>
+      ))}
+      <a href="/curso" class="btn btn-primary site-header__cta">Reserva tu cupo</a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 22px 0;
+    transition: background .35s ease, padding .35s ease, border-color .35s ease;
+    border-bottom: 1px solid transparent;
+  }
+  .site-header.is-scrolled {
+    background: rgba(22, 17, 12, 0.92);
+    backdrop-filter: blur(10px);
+    padding: 14px 0;
+    border-color: var(--line);
+  }
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .site-header__brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--cream);
+  }
+  .site-header__brand img { border-radius: 50%; }
+  .site-header__brand em { color: var(--gold); font-style: italic; }
+
+  .site-header__nav {
+    display: flex;
+    align-items: center;
+    gap: 34px;
+  }
+  .site-header__nav a {
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+    color: var(--cream-2);
+    transition: color .2s ease;
+  }
+  .site-header__nav a:hover { color: var(--accent); }
+  .site-header__cta { padding: 10px 22px; }
+
+  .site-header__toggle {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+  }
+  .site-header__toggle span {
+    width: 22px;
+    height: 1.5px;
+    background: var(--cream);
+  }
+
+  @media (max-width: 860px) {
+    .site-header__toggle { display: flex; }
+    .site-header__nav {
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100vh;
+      width: min(300px, 80vw);
+      background: var(--bg-2);
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px;
+      gap: 28px;
+      transform: translateX(100%);
+      transition: transform .35s ease;
+      border-left: 1px solid var(--line);
+    }
+    .site-header__nav.is-open { transform: translateX(0); }
+  }
+</style>

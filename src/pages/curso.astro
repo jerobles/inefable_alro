@@ -1,0 +1,231 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Taller de velas" description="Reserva tu cupo en el Taller de Velas de Inefable ALRO. 25 de julio y 1 de agosto. Un espacio para tu creatividad y tus sentidos.">
+
+  <section class="curso-hero">
+    <div class="grain"></div>
+    <div class="container">
+      <p class="kicker reveal">Un espacio para ti, tu creatividad y tus sentidos</p>
+      <h1 class="reveal">Taller de <em>Velas</em></h1>
+      <p class="curso-hero__sub reveal">
+        Aprende a crear tu propia vela artesanal en un ambiente cálido y personalizado.
+        Cupos limitados para garantizar una experiencia única.
+      </p>
+    </div>
+  </section>
+
+  <section class="curso-info section-light">
+    <div class="container curso-info__grid">
+      <div class="curso-info__card reveal">
+        <span class="kicker">Fechas</span>
+        <h3>25 de julio &amp; 1 de agosto</h3>
+        <p>Dos fechas disponibles, dos turnos cada día.</p>
+      </div>
+      <div class="curso-info__card reveal">
+        <span class="kicker">Horarios</span>
+        <h3>9:00 a. m. – 1:00 p. m.</h3>
+        <h3>2:00 p. m. – 6:00 p. m.</h3>
+      </div>
+      <div class="curso-info__card reveal">
+        <span class="kicker">Lugar</span>
+        <h3>Calle 155 #14-80</h3>
+        <p>Bogotá, Colombia.</p>
+      </div>
+      <div class="curso-info__card reveal">
+        <span class="kicker">Valor</span>
+        <h3>$180.000 COP</h3>
+        <p>Descuentos disponibles para grupos.</p>
+      </div>
+    </div>
+
+    <div class="container curso-incluye reveal">
+      <h2>El valor incluye</h2>
+      <ul>
+        <li>Materiales para crear tu propia vela</li>
+        <li>Snacks y café durante la sesión</li>
+        <li>Kit de trabajo para llevar a casa</li>
+      </ul>
+      <p class="curso-incluye__nota">Los cupos son limitados para garantizar una experiencia personalizada.</p>
+    </div>
+  </section>
+
+  <section class="curso-form">
+    <div class="container curso-form__grid">
+      <div class="curso-form__intro reveal">
+        <span class="kicker">Reserva tu cupo</span>
+        <h2>Cuéntanos y te contactamos por WhatsApp</h2>
+        <p>
+          Completa el formulario con tus datos. Te escribiremos por WhatsApp para confirmar
+          disponibilidad de fecha y turno, y compartirte el link de pago para asegurar tu cupo.
+        </p>
+        <p class="curso-form__alt">
+          ¿Prefieres escribirnos directo? <a href="https://wa.me/573208076828" target="_blank" rel="noopener">Reserva por WhatsApp →</a>
+        </p>
+      </div>
+
+      <form
+        class="curso-form__form reveal"
+        name="pre-inscripcion-curso"
+        method="POST"
+        data-netlify="true"
+        netlify-honeypot="bot-field"
+        id="form-curso"
+      >
+        <input type="hidden" name="form-name" value="pre-inscripcion-curso" />
+        <p class="hidden-field"><label>No llenar: <input name="bot-field" /></label></p>
+
+        <label>
+          Nombre completo
+          <input type="text" name="nombre" required />
+        </label>
+        <label>
+          Número de WhatsApp
+          <input type="tel" name="whatsapp" required placeholder="Ej: 3001234567" />
+        </label>
+        <label>
+          Correo electrónico
+          <input type="email" name="correo" required />
+        </label>
+        <label>
+          Fecha de tu preferencia
+          <select name="fecha">
+            <option>25 de julio</option>
+            <option>1 de agosto</option>
+            <option>Cualquiera de las dos</option>
+          </select>
+        </label>
+        <label>
+          Turno de tu preferencia
+          <select name="turno">
+            <option>9:00 a. m. – 1:00 p. m.</option>
+            <option>2:00 p. m. – 6:00 p. m.</option>
+            <option>Cualquiera de los dos</option>
+          </select>
+        </label>
+
+        <label class="checkbox-field">
+          <input type="checkbox" name="acepta_privacidad" required />
+          <span>He leído y acepto la <a href="/privacidad">política de privacidad</a>.</span>
+        </label>
+
+        <button type="submit" class="btn btn-primary">Enviar pre-inscripción</button>
+        <p class="curso-form__status" data-form-status role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </section>
+
+  <script>
+    function safe(fn: () => void, name: string) {
+      try { fn(); } catch (e) { console.warn('[' + name + ']', e); }
+    }
+
+    function initCursoForm() {
+      const form = document.getElementById('form-curso') as HTMLFormElement | null;
+      if (!form) return;
+      const status = form.querySelector('[data-form-status]');
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!form.reportValidity()) return;
+
+        const data = new FormData(form);
+        const body = new URLSearchParams(data as any).toString();
+
+        fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body,
+        })
+          .then(() => {
+            if (status) status.textContent = '¡Listo! Te contactaremos muy pronto por WhatsApp para confirmar tu cupo.';
+            form.reset();
+          })
+          .catch(() => {
+            if (status) status.textContent = 'Hubo un problema al enviar. Escríbenos directo por WhatsApp, por favor.';
+          });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => safe(initCursoForm, 'initCursoForm'));
+  </script>
+
+  <style>
+    .curso-hero { position: relative; padding: 180px 0 80px; background: var(--bg-2); }
+    .curso-hero__sub { max-width: 520px; margin-top: 18px; font-size: 1.05rem; }
+
+    .curso-info__grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      margin-bottom: 64px;
+    }
+    .curso-info__card {
+      background: #fff;
+      border: 1px solid rgba(32,26,18,0.1);
+      padding: 26px 22px;
+      border-radius: var(--radius);
+    }
+    .curso-info__card h3 { font-size: 1.15rem; margin: 8px 0 4px; }
+    .curso-info__card p { font-size: 0.85rem; margin: 0; }
+
+    .curso-incluye ul { padding-left: 20px; }
+    .curso-incluye li { margin-bottom: 6px; }
+    .curso-incluye__nota { font-style: italic; color: #6b5d47; margin-top: 16px; }
+
+    .curso-form__grid {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 64px;
+    }
+    .curso-form__intro p { max-width: 400px; }
+    .curso-form__alt a { color: var(--accent); }
+
+    .curso-form__form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .curso-form__form label {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--cream-2);
+    }
+    .curso-form__form input[type="text"],
+    .curso-form__form input[type="tel"],
+    .curso-form__form input[type="email"],
+    .curso-form__form select {
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      color: var(--cream);
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      font-family: var(--font-body);
+    }
+    .curso-form__form input:focus, .curso-form__form select:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+    .checkbox-field {
+      flex-direction: row !important;
+      align-items: flex-start;
+      gap: 10px !important;
+    }
+    .checkbox-field input { margin-top: 4px; }
+    .checkbox-field a { color: var(--accent); }
+    .curso-form__status { min-height: 1.2em; color: var(--gold); font-size: 0.9rem; }
+    .hidden-field { position: absolute; left: -9999px; }
+
+    @media (max-width: 900px) {
+      .curso-info__grid { grid-template-columns: 1fr 1fr; }
+      .curso-form__grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .curso-info__grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</Layout>

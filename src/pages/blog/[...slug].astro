@@ -1,0 +1,62 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await post.render();
+
+const dateFmt = post.data.date.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+---
+
+<Layout title={post.data.title} description={post.data.description} image={post.data.image}>
+  <article class="post">
+    <header class="post-hero section-light">
+      <div class="container">
+        <a href="/blog" class="post-back reveal">← Volver al blog</a>
+        <p class="kicker reveal">{dateFmt}</p>
+        <h1 class="reveal">{post.data.title}</h1>
+      </div>
+    </header>
+
+    {post.data.image && (
+      <div class="post-image">
+        <img src={post.data.image} alt={post.data.title} />
+      </div>
+    )}
+
+    <div class="container post-body reveal">
+      <Content />
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .post-hero { padding: 170px 0 50px; }
+  .post-back { font-size: 0.85rem; color: var(--accent-2); display: inline-block; margin-bottom: 20px; }
+  .post-hero h1 { max-width: 760px; }
+  .post-image { max-width: var(--max-width); margin: 0 auto; padding: 0 24px; }
+  .post-image img { width: 100%; max-height: 480px; object-fit: cover; border-radius: 4px; margin-top: -20px; }
+
+  .post-body {
+    max-width: 720px;
+    padding-top: 56px;
+    padding-bottom: 96px;
+  }
+  .post-body :global(h2) {
+    margin-top: 2.2em;
+    margin-bottom: 0.6em;
+    font-size: 1.6rem;
+  }
+  .post-body :global(p) { font-size: 1.05rem; }
+  .post-body :global(ul) { padding-left: 22px; }
+  .post-body :global(li) { margin-bottom: 8px; color: var(--cream-2); }
+  .post-body :global(a) { color: var(--accent); text-decoration: underline; }
+</style>

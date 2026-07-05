@@ -1,0 +1,256 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Ilumina tu espacio" description="Velas artesanales hechas a mano en Colombia. Cera vegetal, fragancias de calidad y diseño minimalista. Ilumina tu espacio con Inefable ALRO.">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero__bg">
+      <img src="/images/producto-vela-flor.webp" alt="Vela artesanal Inefable ALRO en forma de flor" />
+      <div class="hero__tint"></div>
+    </div>
+    <div class="grain"></div>
+    <div class="container hero__content">
+      <p class="kicker reveal">Ilumina tu espacio · Hecho a mano</p>
+      <h1 class="reveal">
+        No es solo decoración,<br />
+        es el diseño de <em>un momento</em>.
+      </h1>
+      <p class="hero__sub reveal">
+        Velas artesanales de cera vegetal, creadas a mano en Colombia para transformar
+        cualquier espacio en un refugio de serenidad.
+      </p>
+      <div class="hero__actions reveal">
+        <a href="/curso" class="btn btn-primary">Reserva el taller de velas</a>
+        <a href="https://www.instagram.com/inefable.alro/" target="_blank" rel="noopener" class="btn btn-ghost">Ver en Instagram</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORIA -->
+  <section id="historia" class="section-light historia">
+    <div class="container historia__grid">
+      <div class="historia__num reveal">01</div>
+      <div class="historia__text reveal">
+        <span class="kicker">Lo que las palabras no alcanzan a explicar</span>
+        <h2>Nuestra historia</h2>
+        <div class="divider"></div>
+        <p>
+          Inefable nace de la búsqueda de lo extraordinario en lo cotidiano. Somos una marca
+          dedicada a la creación artesanal de piezas que transforman espacios en refugios de
+          serenidad. Creemos firmemente que el verdadero lujo no grita; se siente en la calidez
+          de una luz, en la pureza de un aroma y en la delicadeza de los detalles hechos a mano.
+        </p>
+        <p>
+          Cada una de nuestras creaciones es el resultado de un proceso pausado, donde la
+          selección de materiales y el diseño minimalista convergen para ofrecer una experiencia
+          sensorial única. Para nosotros, lo Inefable es aquello que se vive, se siente y se
+          disfruta en el silencio de un momento perfecto.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CALIDAD -->
+  <section class="calidad">
+    <div class="container">
+      <div class="calidad__head reveal">
+        <span class="kicker">Calidad en cada elemento</span>
+        <h2>Lo que no siempre se ve,<br />pero siempre se percibe</h2>
+      </div>
+      <div class="calidad__grid">
+        <article class="calidad__card reveal">
+          <span class="calidad__icon">◐</span>
+          <h3>Ceras vegetales</h3>
+          <p>Mezcla exclusiva de ceras 100% biodegradables y renovables. Combustión lenta y limpia, libre de hollín y toxinas.</p>
+        </article>
+        <article class="calidad__card reveal">
+          <span class="calidad__icon">✦</span>
+          <h3>Fragancias de calidad</h3>
+          <p>Esencias elegidas por su impacto en los sentidos: notas sofisticadas que crean una atmósfera persistente pero delicada.</p>
+        </article>
+        <article class="calidad__card reveal">
+          <span class="calidad__icon">≈</span>
+          <h3>Mechas de fibra natural</h3>
+          <p>Algodón puro o madera, para una llama estable y segura que potencia la difusión del aroma.</p>
+        </article>
+        <article class="calidad__card reveal">
+          <span class="calidad__icon">○</span>
+          <h3>Recipientes reutilizables</h3>
+          <p>Vidrio y cerámica de estética minimalista, pensados para tener una segunda vida una vez terminada la vela.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALERÍA DE PRODUCTOS (sin tienda aún — vitrina + Instagram) -->
+  <section class="galeria section-light">
+    <div class="container">
+      <div class="galeria__head reveal">
+        <span class="kicker">Nuestras creaciones</span>
+        <h2>Cada vela cuenta una historia</h2>
+        <p>La tienda en línea llega pronto. Mientras tanto, escríbenos por WhatsApp o visita nuestro Instagram para conocer disponibilidad y hacer tu pedido.</p>
+      </div>
+      <div class="galeria__grid">
+        <figure class="reveal">
+          <img src="/images/producto-fresas.webp" alt="Vela Postre de Fresas, atmósfera de fresas" />
+          <figcaption>Postre de Fresas</figcaption>
+        </figure>
+        <figure class="reveal">
+          <img src="/images/producto-jarrita.jpg" alt="Vela artesanal en jarra con diseño de rostro" />
+          <figcaption>Colección Corazón & Mina</figcaption>
+        </figure>
+        <figure class="reveal">
+          <img src="/images/producto-rosa.jpg" alt="Vela Postre de Fresas al aire libre" />
+          <figcaption>Ilumina tu espacio</figcaption>
+        </figure>
+      </div>
+      <div class="galeria__cta reveal">
+        <a href="https://www.instagram.com/inefable.alro/" target="_blank" rel="noopener" class="btn btn-primary">Ver catálogo completo en Instagram</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- TALLER TEASER -->
+  <section class="taller">
+    <div class="grain"></div>
+    <div class="container taller__grid">
+      <div class="taller__text reveal">
+        <span class="kicker">Próximo evento</span>
+        <h2>Taller de velas</h2>
+        <p>Un espacio para ti, tu creatividad y tus sentidos. Aprende a crear tu propia vela artesanal, con materiales, snacks y kit de trabajo incluidos.</p>
+        <a href="/curso" class="btn btn-primary">Ver fechas y reservar</a>
+      </div>
+      <div class="taller__img reveal">
+        <img src="/images/curso-flyer.webp" alt="Taller de velas Inefable ALRO" />
+      </div>
+    </div>
+  </section>
+
+</Layout>
+
+<style>
+  /* HERO */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+  }
+  .hero__bg {
+    position: absolute;
+    inset: 0;
+  }
+  .hero__bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: saturate(1.05) contrast(1.05);
+  }
+  .hero__tint {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(22,17,12,0.55) 0%, rgba(22,17,12,0.75) 55%, rgba(22,17,12,0.97) 100%);
+  }
+  .hero__content {
+    position: relative;
+    padding-bottom: 100px;
+    max-width: 780px;
+  }
+  .hero__sub {
+    font-size: 1.1rem;
+    max-width: 520px;
+    margin-top: 20px;
+  }
+  .hero__actions {
+    margin-top: 36px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  /* HISTORIA */
+  .historia__grid {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 40px;
+  }
+  .historia__num {
+    font-family: var(--font-display);
+    font-size: 4rem;
+    color: var(--accent-2);
+    opacity: 0.5;
+  }
+  .historia__text { max-width: 680px; }
+
+  /* CALIDAD */
+  .calidad__head { max-width: 620px; margin-bottom: 56px; }
+  .calidad__grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
+  }
+  .calidad__card {
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    padding: 32px 24px;
+    border-radius: var(--radius);
+  }
+  .calidad__icon {
+    display: block;
+    font-size: 1.6rem;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .calidad__card h3 { font-size: 1.1rem; margin-bottom: 10px; }
+  .calidad__card p { font-size: 0.92rem; margin: 0; }
+
+  /* GALERÍA */
+  .galeria__head { max-width: 560px; margin-bottom: 48px; }
+  .galeria__head p { margin-top: 12px; }
+  .galeria__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .galeria__grid figure { margin: 0; overflow: hidden; border-radius: var(--radius); }
+  .galeria__grid img {
+    width: 100%;
+    aspect-ratio: 4/5;
+    object-fit: cover;
+    transition: transform .5s ease;
+  }
+  .galeria__grid figure:hover img { transform: scale(1.06); }
+  .galeria__grid figcaption {
+    margin-top: 10px;
+    font-size: 0.82rem;
+    letter-spacing: 0.03em;
+    color: #6b5d47;
+  }
+  .galeria__cta { margin-top: 48px; }
+
+  /* TALLER */
+  .taller { position: relative; background: var(--bg-2); }
+  .taller__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: center;
+  }
+  .taller__text p { max-width: 420px; margin: 18px 0 28px; }
+  .taller__img img { border-radius: 4px; border: 1px solid var(--line); }
+
+  @media (max-width: 900px) {
+    .historia__grid { grid-template-columns: 1fr; }
+    .historia__num { display: none; }
+    .calidad__grid { grid-template-columns: repeat(2, 1fr); }
+    .galeria__grid { grid-template-columns: 1fr 1fr; }
+    .taller__grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .calidad__grid { grid-template-columns: 1fr; }
+    .galeria__grid { grid-template-columns: 1fr; }
+  }
+</style>

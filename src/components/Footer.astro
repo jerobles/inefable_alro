@@ -1,0 +1,88 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container site-footer__inner">
+    <div class="site-footer__brand">
+      <img src="/images/logo.png" alt="Inefable ALRO" width="56" height="56" />
+      <p class="site-footer__tag">Ilumina tu espacio. Hecho a mano.</p>
+    </div>
+
+    <div class="site-footer__col">
+      <span class="kicker">Explora</span>
+      <a href="/">Inicio</a>
+      <a href="/blog">Blog</a>
+      <a href="/curso">Taller de velas</a>
+    </div>
+
+    <div class="site-footer__col">
+      <span class="kicker">Legal</span>
+      <a href="/privacidad">Política de privacidad</a>
+      <a href="/terminos">Términos y condiciones</a>
+      <a href="https://www.sic.gov.co" target="_blank" rel="noopener">Superintendencia de Industria y Comercio</a>
+    </div>
+
+    <div class="site-footer__col">
+      <span class="kicker">Síguenos</span>
+      <a href="https://www.instagram.com/inefable.alro/" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://wa.me/573208076828" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+  </div>
+
+  <div class="container site-footer__bottom">
+    <p>© {year} Inefable ALRO. Todos los derechos reservados.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background: var(--bg-2);
+    border-top: 1px solid var(--line);
+    padding: 72px 0 24px;
+  }
+  .site-footer__inner {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    gap: 40px;
+  }
+  .site-footer__brand {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .site-footer__brand img { border-radius: 50%; }
+  .site-footer__tag {
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--cream-2);
+    font-size: 1rem;
+    max-width: 220px;
+  }
+  .site-footer__col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .site-footer__col a {
+    color: var(--cream-3);
+    font-size: 0.9rem;
+    transition: color .2s ease;
+  }
+  .site-footer__col a:hover { color: var(--accent); }
+
+  .site-footer__bottom {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+  .site-footer__bottom p {
+    font-size: 0.78rem;
+    color: var(--cream-3);
+    margin: 0;
+  }
+
+  @media (max-width: 780px) {
+    .site-footer__inner { grid-template-columns: 1fr 1fr; }
+  }
+</style>
