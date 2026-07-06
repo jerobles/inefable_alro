@@ -46,6 +46,19 @@ const {
     <Footer />
     <WhatsAppButton />
 
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js" is:inline></script>
+    <script is:inline>
+      if (window.netlifyIdentity) {
+        window.netlifyIdentity.on('init', (user) => {
+          if (!user) {
+            window.netlifyIdentity.on('login', () => {
+              document.location.href = '/admin/';
+            });
+          }
+        });
+      }
+    </script>
+
     <script>
       // Reveal-on-scroll — funcional, robusto, con try/catch (patrón "safe")
       function safe(fn: () => void, name: string) {
