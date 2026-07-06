@@ -1,3 +1,9 @@
+function toE164Colombia(phone) {
+  if (!phone) return '';
+  const digits = phone.replace(/[^\d+]/g, '');
+  return digits.startsWith('+') ? digits : `+57${digits}`;
+}
+
 export const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -39,7 +45,7 @@ export const handler = async (event) => {
         email,
         attributes: {
           NOMBRE: data.nombre || '',
-          WHATSAPP: data.whatsapp || '',
+          WHATSAPP: toE164Colombia(data.whatsapp),
           FECHA_PREFERENCIA: data.fecha || '',
           TURNO_PREFERENCIA: data.turno || '',
         },
