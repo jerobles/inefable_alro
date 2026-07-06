@@ -82,11 +82,29 @@ import Layout from '../layouts/Layout.astro';
         </label>
         <label>
           Número de WhatsApp
-          <input type="tel" name="whatsapp" required placeholder="Ej: 3001234567" />
+          <div class="phone-field">
+            <span class="phone-field__prefix">+57</span>
+            <input
+              type="tel"
+              name="whatsapp"
+              required
+              inputmode="numeric"
+              pattern="3[0-9]{9}"
+              maxlength="10"
+              placeholder="3001234567"
+              title="Escribe tu celular colombiano: 10 dígitos, comenzando por 3"
+            />
+          </div>
         </label>
         <label>
           Correo electrónico
-          <input type="email" name="correo" required />
+          <input
+            type="email"
+            name="correo"
+            required
+            pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+            title="Escribe un correo válido, por ejemplo nombre@dominio.com"
+          />
         </label>
         <label>
           Fecha de tu preferencia
@@ -125,6 +143,13 @@ import Layout from '../layouts/Layout.astro';
       const form = document.getElementById('form-curso') as HTMLFormElement | null;
       if (!form) return;
       const status = form.querySelector('[data-form-status]');
+
+      const whatsappInput = form.querySelector('input[name="whatsapp"]') as HTMLInputElement | null;
+      if (whatsappInput) {
+        whatsappInput.addEventListener('input', () => {
+          whatsappInput.value = whatsappInput.value.replace(/\D/g, '').slice(0, 10);
+        });
+      }
 
       form.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -210,6 +235,22 @@ import Layout from '../layouts/Layout.astro';
       outline: 2px solid var(--accent);
       outline-offset: 1px;
     }
+    .phone-field {
+      display: flex;
+      gap: 8px;
+    }
+    .phone-field__prefix {
+      display: flex;
+      align-items: center;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      color: var(--cream-2);
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+    .phone-field input { flex: 1; min-width: 0; }
     .checkbox-field {
       flex-direction: row !important;
       align-items: flex-start;
