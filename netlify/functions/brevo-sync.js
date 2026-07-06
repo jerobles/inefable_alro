@@ -11,17 +11,19 @@ export const handler = async (event) => {
     return { statusCode: 500, body: 'Missing Brevo configuration' };
   }
 
-  let data;
+  let body;
   try {
-    const body = JSON.parse(event.body);
-    data = body?.payload?.data || {};
+    body = JSON.parse(event.body);
   } catch (err) {
-    console.error('[brevo-sync] No se pudo leer el payload del formulario', err);
+    console.error('[brevo-sync] No se pudo parsear el body como JSON', err);
     return { statusCode: 400, body: 'Invalid payload' };
   }
 
-  const email = data.correo;
+  const data = body?.payload?.data || body?.data || {};
+  const email = data.correo || data.email;
+
   if (!email) {
+    console.error('[brevo-sync] No se encontró el correo en el payload recibido:', JSON.stringify(body));
     return { statusCode: 400, body: 'Missing email' };
   }
 
