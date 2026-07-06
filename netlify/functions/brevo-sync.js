@@ -51,12 +51,12 @@ export const handler = async (event) => {
     if (!response.ok) {
       const errText = await response.text();
       console.error('[brevo-sync] Brevo respondió con error', response.status, errText);
-      return { statusCode: 502, body: 'Brevo error' };
+      return { statusCode: 502, body: `Brevo error ${response.status}: ${errText}` };
     }
 
     return { statusCode: 200, body: 'ok' };
   } catch (err) {
     console.error('[brevo-sync] Fallo al llamar a Brevo', err);
-    return { statusCode: 500, body: 'Internal error' };
+    return { statusCode: 500, body: `Internal error: ${err.message}` };
   }
 };
