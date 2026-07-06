@@ -15,6 +15,18 @@ const {
   description = 'Velas artesanales hechas a mano en Colombia. Ilumina tu espacio con Inefable ALRO.',
   image = '/images/logo.png',
 } = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const absoluteImage = new URL(image, Astro.site);
+
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Inefable ALRO',
+  url: Astro.site?.href,
+  logo: new URL('/images/logo.png', Astro.site).href,
+  sameAs: ['https://www.instagram.com/inefable.alro/'],
+};
 ---
 
 <!doctype html>
@@ -23,13 +35,18 @@ const {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/images/logo.png" />
+    <link rel="canonical" href={canonicalURL} />
     <title>{title} · Inefable ALRO</title>
     <meta name="description" content={description} />
 
     <meta property="og:title" content={`${title} · Inefable ALRO`} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={image} />
+    <meta property="og:image" content={absoluteImage} />
+    <meta property="og:url" content={canonicalURL} />
     <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <script type="application/ld+json" set:html={JSON.stringify(organizationSchema)} />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

@@ -1,8 +1,48 @@
 ---
 import Layout from '../layouts/Layout.astro';
+
+const baseEvent = {
+  '@context': 'https://schema.org',
+  '@type': 'Event',
+  name: 'Taller de Velas — Inefable ALRO',
+  description:
+    'Aprende a crear tu propia vela artesanal en un ambiente cálido y personalizado. Incluye materiales, snacks y kit de trabajo para llevar a casa.',
+  eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+  eventStatus: 'https://schema.org/EventScheduled',
+  image: [new URL('/images/curso-flyer.webp', Astro.site).href],
+  location: {
+    '@type': 'Place',
+    name: 'Inefable ALRO',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: 'Calle 155 #14-80',
+      addressLocality: 'Bogotá',
+      addressCountry: 'CO',
+    },
+  },
+  organizer: {
+    '@type': 'Organization',
+    name: 'Inefable ALRO',
+    url: Astro.site?.href,
+  },
+  offers: {
+    '@type': 'Offer',
+    price: '180000',
+    priceCurrency: 'COP',
+    availability: 'https://schema.org/InStock',
+    url: new URL('/curso', Astro.site).href,
+  },
+};
+
+const eventsSchema = [
+  { ...baseEvent, startDate: '2026-07-25T09:00:00-05:00', endDate: '2026-07-25T18:00:00-05:00' },
+  { ...baseEvent, startDate: '2026-08-01T09:00:00-05:00', endDate: '2026-08-01T18:00:00-05:00' },
+];
 ---
 
 <Layout title="Taller de velas" description="Reserva tu cupo en el Taller de Velas de Inefable ALRO. 25 de julio y 1 de agosto. Un espacio para tu creatividad y tus sentidos.">
+
+  <script type="application/ld+json" set:html={JSON.stringify(eventsSchema)} />
 
   <section class="curso-hero">
     <div class="grain"></div>
