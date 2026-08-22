@@ -41,5 +41,5 @@ export async function crearPreferencia({ accessToken, items, payer, externalRefe
 // URL base del sitio para armar los back_urls (a dónde vuelve la persona tras pagar).
 // Netlify pone la variable URL sola en cada deploy — no hace falta configurarla a mano.
 export function siteUrl() {
-  return process.env.URL || 'https://preeminent-mermaid-8418d4.netlify.app';
+  return process.env.URL || 'https://inefablealro.com';
 }

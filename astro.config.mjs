@@ -2,6 +2,6 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
-  site: 'https://inefable.alro.co',
+  site: 'https://inefablealro.com',
   integrations: [sitemap()],
 });

@@ -82,13 +82,15 @@ astro.config.mjs             ← incluye integración @astrojs/sitemap (fijar en
 
 Proyecto compila sin errores (`npm run build`) y **ya está desplegado y en vivo**:
 - Repo en GitHub: `git@github.com-personal:jerobles/inefable_alro.git` (branch `main`, cuenta personal — la máquina tiene 2 cuentas GitHub, ver alias SSH `github.com-personal`)
-- Sitio en vivo en Netlify: `https://preeminent-mermaid-8418d4.netlify.app/` (deploy continuo desde `main`)
+- **Dominio real en vivo: `https://inefablealro.com`** (comprado en Namecheap el 2026-08-22, con Netlify DNS — nameservers `dns1..4.p01.nsone.net`). `www.inefablealro.com` redirige al dominio pelado. Certificado SSL de Let's Encrypt emitido automáticamente. El subdominio viejo `preeminent-mermaid-8418d4.netlify.app` sigue funcionando en paralelo (Netlify no lo quita), pero el oficial es el dominio propio.
+  - Ojo con el nombre: el plan viejo hablaba de `inefable.alro` — **`.alro` no existe como extensión de dominio**, era un error heredado. El dominio real es `inefablealro.com`.
+  - Al diagnosticar DNS, no confiar en `curl` desde esta máquina: el caché de DNS de Windows guarda las IPs viejas y hace parecer que el dominio responde desde Namecheap. Usar `curl --resolve dominio:443:IP` o consultar los nameservers autoritativos para ver el estado real.
 - Netlify Identity + Git Gateway activos → `/admin` (Decap CMS) funciona en producción
 - Formulario del curso: notificación por email configurada + integración a Brevo funcionando de punta a punta (`netlify/functions/brevo-sync.js`). Ojo: el webhook de Netlify se autodesactiva tras 6 fallos seguidos — si deja de sincronizar, revisar Forms → Form notifications y reactivarlo ahí. Brevo trata el atributo `WHATSAPP` como campo de teléfono y exige formato internacional; la función ya formatea a `+57` automáticamente.
 - Catálogo (`/tienda`): formulario "Quiero este producto" probado de punta a punta en producción (2026-08-22) — contacto creado en Brevo con el atributo `PRODUCTO_INTERES`, más los 2 correos (confirmación + notificación interna). Los 3 webhooks de Forms (taller, newsletter, producto) ya quedaron configurados y escopados cada uno a su formulario.
 - SEO: sitemap real (`@astrojs/sitemap`), canonical, og:url, JSON-LD (Organization + Event del taller), imágenes con `width`/`height` fijos
 - Diseño: logo corregido (contraste en fondo oscuro), banner principal actualizado con foto real de producto
-- Dominio real `inefable.alro` **aún no comprado/conectado** — el sitio vive en el subdominio gratis de Netlify mientras tanto
+- `astro.config.mjs` → `site` actualizado a `https://inefablealro.com` (antes tenía `https://inefable.alro.co`, un dominio inventado que nunca existió) — de ahí salen canonical, og:url, sitemap y JSON-LD
 
 ## Pendiente / próximos pasos
 
