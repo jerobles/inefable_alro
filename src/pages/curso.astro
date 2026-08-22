@@ -94,6 +94,7 @@ const eventsSchema = [
           <p><strong>Horario:</strong> escríbenos por WhatsApp para confirmar disponibilidad</p>
         </div>
         <div class="taller-card__price">$100.000 <small>COP · todo incluido</small></div>
+        <a href="#form-curso" class="btn btn-primary taller-card__cta" data-taller-option="22 de agosto — Velas de Postre">Reservar este taller</a>
       </article>
 
       <article class="taller-card reveal">
@@ -113,6 +114,7 @@ const eventsSchema = [
           <p><strong>Lugar:</strong> Calle 155 #14-80, Bogotá</p>
         </div>
         <div class="taller-card__price">$180.000 <small>COP · descuentos para grupos</small></div>
+        <a href="#form-curso" class="btn btn-primary taller-card__cta" data-taller-option="29 de agosto — Taller de Velas">Reservar este taller</a>
       </article>
     </div>
 
@@ -207,6 +209,21 @@ const eventsSchema = [
       try { fn(); } catch (e) { console.warn('[' + name + ']', e); }
     }
 
+    function initTallerCtas() {
+      const form = document.getElementById('form-curso') as HTMLFormElement | null;
+      const fechaSelect = form?.querySelector('select[name="fecha"]') as HTMLSelectElement | null;
+      const nombreInput = form?.querySelector('input[name="nombre"]') as HTMLInputElement | null;
+      if (!form || !fechaSelect) return;
+
+      document.querySelectorAll('[data-taller-option]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const value = btn.getAttribute('data-taller-option');
+          if (value) fechaSelect.value = value;
+          setTimeout(() => nombreInput?.focus(), 500);
+        });
+      });
+    }
+
     function initCursoForm() {
       const form = document.getElementById('form-curso') as HTMLFormElement | null;
       if (!form) return;
@@ -241,7 +258,10 @@ const eventsSchema = [
       });
     }
 
-    document.addEventListener('DOMContentLoaded', () => safe(initCursoForm, 'initCursoForm'));
+    document.addEventListener('DOMContentLoaded', () => {
+      safe(initCursoForm, 'initCursoForm');
+      safe(initTallerCtas, 'initTallerCtas');
+    });
   </script>
 
   <style>
@@ -280,6 +300,7 @@ const eventsSchema = [
     .taller-card__meta p { margin: 0 0 4px; }
     .taller-card__price { margin-top: auto; font-family: var(--font-display); font-size: 1.4rem; color: var(--ink); }
     .taller-card__price small { font-family: var(--font-body); font-size: 0.75rem; color: #6b5d47; font-weight: 400; }
+    .taller-card__cta { margin-top: 18px; text-align: center; }
     .curso-talleres__nota { font-style: italic; color: #6b5d47; margin-top: 28px; text-align: center; }
 
     .curso-form__grid {
