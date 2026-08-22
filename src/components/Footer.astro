@@ -3,6 +3,39 @@ const year = new Date().getFullYear();
 ---
 
 <footer class="site-footer">
+  <div class="container site-footer__newsletter reveal">
+    <div class="site-footer__newsletter-text">
+      <span class="kicker">Mantente al tanto</span>
+      <h3>Talleres nuevos y novedades, directo a tu correo</h3>
+    </div>
+
+    <form
+      class="site-footer__newsletter-form"
+      name="newsletter"
+      method="POST"
+      data-netlify="true"
+      netlify-honeypot="bot-field-news"
+      id="form-newsletter"
+    >
+      <input type="hidden" name="form-name" value="newsletter" />
+      <p class="hidden-field"><label>No llenar: <input name="bot-field-news" /></label></p>
+      <input type="text" name="nombre" placeholder="Tu nombre" required />
+      <input
+        type="email"
+        name="correo"
+        placeholder="tu@correo.com"
+        required
+        pattern="[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}"
+        title="Escribe un correo válido, por ejemplo nombre@dominio.com"
+      />
+      <button type="submit" class="btn btn-primary">Suscribirme</button>
+      <p class="site-footer__newsletter-status" data-form-status role="status" aria-live="polite"></p>
+    </form>
+  </div>
+  <p class="container site-footer__newsletter-nota">
+    Al suscribirte aceptas nuestra <a href="/privacidad">política de privacidad</a>. Sin spam, puedes darte de baja cuando quieras.
+  </p>
+
   <div class="container site-footer__inner">
     <div class="site-footer__brand">
       <img src="/images/logo-badge.svg" alt="Inefable ALRO" width="64" height="64" />
@@ -35,12 +68,98 @@ const year = new Date().getFullYear();
   </div>
 </footer>
 
+<script>
+  function safe(fn: () => void, name: string) {
+    try { fn(); } catch (e) { console.warn('[' + name + ']', e); }
+  }
+
+  function initNewsletterForm() {
+    const form = document.getElementById('form-newsletter') as HTMLFormElement | null;
+    if (!form) return;
+    const status = form.querySelector('[data-form-status]');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+
+      const data = new FormData(form);
+      const body = new URLSearchParams(data as any).toString();
+
+      fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+      })
+        .then(() => {
+          if (status) status.textContent = '¡Listo! Ya estás en la lista.';
+          form.reset();
+        })
+        .catch(() => {
+          if (status) status.textContent = 'Hubo un problema al enviar, inténtalo de nuevo.';
+        });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => safe(initNewsletterForm, 'initNewsletterForm'));
+</script>
+
 <style>
   .site-footer {
     background: var(--bg-2);
     border-top: 1px solid var(--line);
     padding: 72px 0 24px;
   }
+  .site-footer__newsletter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding-bottom: 40px;
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--line);
+  }
+  .site-footer__newsletter-text h3 {
+    font-size: 1.2rem;
+    margin: 6px 0 0;
+    max-width: 340px;
+  }
+  .site-footer__newsletter-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .site-footer__newsletter-form input[type="text"],
+  .site-footer__newsletter-form input[type="email"] {
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    color: var(--cream);
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    width: 200px;
+  }
+  .site-footer__newsletter-form input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .site-footer__newsletter-status {
+    width: 100%;
+    min-height: 1.2em;
+    color: var(--gold);
+    font-size: 0.85rem;
+    margin: 4px 0 0;
+  }
+  .site-footer__newsletter-nota {
+    font-size: 0.78rem;
+    color: var(--cream-3);
+    margin: -20px 0 40px;
+  }
+  .site-footer__newsletter-nota a { color: var(--accent); }
+  .hidden-field { position: absolute; left: -9999px; }
+
   .site-footer__inner {
     display: grid;
     grid-template-columns: 1.4fr 1fr 1fr 1fr;
@@ -89,5 +208,9 @@ const year = new Date().getFullYear();
 
   @media (max-width: 780px) {
     .site-footer__inner { grid-template-columns: 1fr 1fr; }
+    .site-footer__newsletter { flex-direction: column; align-items: flex-start; }
+    .site-footer__newsletter-form input[type="text"],
+    .site-footer__newsletter-form input[type="email"] { width: 100%; }
+    .site-footer__newsletter-form { width: 100%; }
   }
 </style>
