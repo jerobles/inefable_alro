@@ -74,16 +74,22 @@ Proyecto compila sin errores (`npm run build`) y **ya está desplegado y en vivo
 ## Pendiente / próximos pasos
 
 0. **En curso (2026-08-21): rediseño de talleres**, por módulos, aprobando cada uno con el usuario antes de seguir:
-   - Módulo 1 ✅ hecho — datos reales corregidos (WhatsApp, talleres de agosto)
+   - Módulo 1 ✅ hecho — datos reales corregidos (WhatsApp, talleres de agosto), botón "Reservar este taller" por tarjeta
+   - Módulo 1.5 ✅ código hecho, **falta activar** — `brevo-sync.js` ahora también manda 2 correos por Brevo (transactional email, misma API key): confirmación al lead + notificación a la empresa con botón "Escríbele por WhatsApp" directo al número del lead. No hace nada todavía porque faltan 2 variables de entorno en Netlify:
+     - `BREVO_SENDER_EMAIL` — el usuario debe pedirle a su equipo un correo "más empresarial" (no quiere usar el personal); pendiente de que se lo pasen. **Ese correo también hay que verificarlo como remitente en Brevo** (Senders & IP) antes de que funcione.
+     - `BUSINESS_NOTIFY_EMAIL` — a qué correo le llega la notificación de nueva inscripción (puede ser el mismo de las notificaciones de Netlify Forms, o distinto)
+     - Opcional (no bloqueante): `BREVO_SENDER_NAME`, por defecto "Inefable ALRO" si no se define
    - Módulo 2 — colección "Talleres" en Decap CMS para que el usuario los administre desde `/admin` sin código
    - Módulo 3 — el selector de taller del formulario se llena solo desde esa colección; Brevo guarda a qué taller se inscribió cada contacto (atributo `TALLER`, no una lista aparte por taller — así no hay que crear una lista nueva en Brevo cada vez)
    - Módulo 4 — formulario de newsletter (nombre + correo) con su propia lista en Brevo
-   - Módulo 5 — banner visual de WhatsApp + efecto hover en las tarjetas de taller
-1. Comprar y conectar el dominio `inefable.alro` en Netlify (dominio en sí no es gratis, ~$12-15 USD/año; conectarlo a Netlify sí lo es)
-2. Configurar Google Analytics (pendiente hasta tener el dominio final, GA lo pide en su configuración)
-3. Widget de Instagram en la home (esperando que el usuario conecte su cuenta en snapwidget.com y pase el código embed)
-4. Seguir ajustes de diseño puntuales (el usuario los va revisando y pidiendo de a poco)
-5. Fase futura (no ahora): pago Wompi para el curso, tienda de productos, suscripciones — la arquitectura ya lo permite sin romper nada existente
+   - Módulo 5 ⚠️ ajustado — banner visual de WhatsApp + efecto hover en las tarjetas de taller. El logo (parte de este módulo) **ya se hizo antes de tiempo**, a pedido del usuario: `logo-badge.svg` ahora lleva un disco crema (`var(--cream)`) detrás en vez de quedar transparente sobre el fondo oscuro (casi no se veía), y es más grande (56px header, 64px footer)
+1. **Tarea futura, no bloqueante:** notificación instantánea por WhatsApp (no correo) al número de la empresa vía CallMeBot cuando alguien se inscribe — al usuario le gustó la idea pero no gestiona ese número, así que alguien más debe activarlo (mandarle un mensaje al bot de CallMeBot desde ese WhatsApp para obtener el API key) antes de poder implementarlo
+2. Comprar y conectar el dominio `inefable.alro` en Netlify (dominio en sí no es gratis, ~$12-15 USD/año; conectarlo a Netlify sí lo es)
+3. Configurar Google Analytics (pendiente hasta tener el dominio final, GA lo pide en su configuración)
+4. Widget de Instagram en la home (esperando que el usuario conecte su cuenta en snapwidget.com y pase el código embed)
+5. Pedir al usuario una versión actualizada del flyer `curso-flyer.webp` — la imagen tiene el WhatsApp viejo (3208076828) escrito dentro de la foto, no se puede corregir por código
+6. Seguir ajustes de diseño puntuales (el usuario los va revisando y pidiendo de a poco)
+7. Fase futura (no ahora): pago Wompi para el curso, tienda de productos, suscripciones — la arquitectura ya lo permite sin romper nada existente
 
 ## Flujo de deploy (importante, desde 2026-08-21)
 
