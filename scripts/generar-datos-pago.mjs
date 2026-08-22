@@ -49,10 +49,16 @@ const productos = leerColeccion('productos')
     variantes: (p.variantes || []).map((v) => ({ presentacion: v.presentacion, precio: v.precio })),
   }));
 
+// Se escriben como módulos .js (no .json) a propósito: así las funciones los traen con
+// un `import` normal y el bundler de Netlify los mete DENTRO del paquete de la función.
+// Leerlos del disco en tiempo de ejecución no funciona: Netlify transpila las funciones
+// a CommonJS, donde `import.meta.url` es inválido y `__dirname` ya está declarado —
+// ambos caminos tumbaron la función en producción el 2026-08-22.
 const outDir = path.join(ROOT, 'netlify', 'functions', 'data');
+const banner = '// Generado por scripts/generar-datos-pago.mjs — no editar a mano.\n';
 fs.mkdirSync(outDir, { recursive: true });
-fs.writeFileSync(path.join(outDir, 'talleres.json'), JSON.stringify(talleres, null, 2));
-fs.writeFileSync(path.join(outDir, 'productos.json'), JSON.stringify(productos, null, 2));
+fs.writeFileSync(path.join(outDir, 'talleres.js'), `${banner}export default ${JSON.stringify(talleres, null, 2)};\n`);
+fs.writeFileSync(path.join(outDir, 'productos.js'), `${banner}export default ${JSON.stringify(productos, null, 2)};\n`);
 
 console.log(
   `[generar-datos-pago] ${talleres.length} taller(es) y ${productos.length} producto(s) exportados para las funciones de pago.`

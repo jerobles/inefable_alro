@@ -1,12 +1,6 @@
-import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { crearPreferencia, siteUrl } from './lib/mercadopago.js';
-
-// Ver la nota en pago-taller.js: no declarar `__dirname` propio, choca con el que
-// inyecta el bundler de Netlify y tumba la función.
-const productos = JSON.parse(
-  fs.readFileSync(fileURLToPath(new URL('./data/productos.json', import.meta.url)), 'utf8')
-);
+// Ver la nota en pago-taller.js: se importa el módulo generado, no se lee del disco.
+import productos from './data/productos.js';
 
 // Por ahora el pago en línea solo aplica a entregas en Bogotá (domicilio con tarifa
 // fija incluida en el cobro). Pedidos a otras ciudades siguen el flujo de siempre:
