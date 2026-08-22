@@ -46,7 +46,10 @@ src/
     privacidad.astro
     terminos.astro
 netlify/
-  functions/brevo-sync.js     ← recibe el webhook de Netlify Forms, crea/actualiza el contacto en Brevo, y manda los 2 correos (confirmación al lead + notificación interna)
+  functions/
+    lib/brevo.js              ← helpers compartidos de Brevo (sendBrevoEmail, parseRecipients, toE164Colombia, upsertBrevoContact)
+    brevo-sync.js               ← webhook del form del taller: crea/actualiza contacto en Brevo + 2 correos (confirmación al lead + notificación interna)
+    newsletter-sync.js          ← webhook del form de newsletter (footer): crea/actualiza contacto en su propia lista + correo de bienvenida
 public/
   images/                     ← fotos reales de producto, banner-principal.webp (hero), curso-experiencia-poster.jpg (poster del video), logo.png (favicon/OG), logo-badge.svg (header/footer, recoloreado cream/cream-3, disco crema detrás)
   videos/curso-experiencia.mp4 ← loop del taller en la home (10s, 552KB, comprimido con ffmpeg)
@@ -86,7 +89,7 @@ Proyecto compila sin errores (`npm run build`) y **ya está desplegado y en vivo
      - Importante: `formresponses@netlify.com` es el remitente FIJO de la notificación nativa de Netlify Forms (la que ya funciona, en paralelo) — esa NO se puede personalizar ni ponerle botones, por eso se armó el correo aparte por Brevo.
    - Módulo 2 ✅ hecho — colección "Talleres" en Decap CMS (`src/content/talleres/*.md`, schema en `src/content/config.ts`). El usuario agrega/edita/oculta talleres desde `/admin` sin tocar código. Campos: titulo, fecha, precio, notaPrecio, duracion, horario, descripcion, incluye (lista), lugar, activo (boolean para ocultar sin borrar).
    - Módulo 3 ✅ hecho — `/curso` lee la colección de talleres: filtra los inactivos y los que ya pasaron de fecha, ordena, y genera tarjetas + JSON-LD + opciones del selector del formulario dinámicamente. Brevo guarda a qué taller se inscribió cada contacto en el atributo `TALLER` (texto libre, no una lista aparte por taller — así no hay que crear una lista nueva en Brevo cada vez que se agrega un taller). Si no hay talleres activos/futuros, la página muestra un estado vacío con CTA a WhatsApp en vez de quedar rota.
-   - Módulo 4 — formulario de newsletter (nombre + correo) con su propia lista en Brevo
+   - Módulo 4 ✅ código hecho, **falta 1 variable de entorno** — formulario de newsletter (nombre + correo) en el footer (aparece en todas las páginas, no solo el inicio). `netlify/functions/newsletter-sync.js` guarda el contacto en una lista aparte de Brevo (`BREVO_NEWSLETTER_LIST_ID`, aún no creada/configurada) y manda un correo de bienvenida (usa `BREVO_SENDER_EMAIL`, el corporativo — mismo bloqueo que el Módulo 1.5). Se creó `netlify/functions/lib/brevo.js` con las funciones compartidas (`sendBrevoEmail`, `parseRecipients`, `toE164Colombia`, `upsertBrevoContact`) para no duplicar código entre `brevo-sync.js` y `newsletter-sync.js`.
    - Módulo 5 ⚠️ ajustado — banner visual de WhatsApp + efecto hover en las tarjetas de taller. El logo y el flyer de la home (parte de este módulo) **ya se hicieron antes de tiempo**, a pedido del usuario:
      - `logo-badge.svg` ahora lleva un disco crema (`var(--cream)`) detrás en vez de quedar transparente sobre el fondo oscuro (casi no se veía), y es más grande (56px header, 64px footer)
      - El flyer del taller en la home (`curso-flyer.webp`, tenía el WhatsApp viejo escrito en la imagen) se reemplazó por un `<video>` en loop (`public/videos/curso-experiencia.mp4`, 552KB, 10s, comprimido con ffmpeg desde un video real de 26.6MB que pasó el usuario) que respeta `prefers-reduced-motion`. `curso-flyer.webp` se eliminó del proyecto.
@@ -121,3 +124,4 @@ npm run build       # verificar que compila antes de dar por terminado un cambio
 - No agregar dependencias npm pesadas (frameworks JS, librerías de animación grandes) sin confirmar con el usuario — el sitio se diseñó para ser liviano y mantenible por alguien sin equipo técnico.
 - La regla base `img { max-width: 100%; height: auto; }` en `global.css` es importante — si una sección nueva de imagen necesita alto distinto, usar `aspect-ratio` + `object-fit: cover` en el CSS de esa sección (como `.galeria__grid img`), no depender solo de los atributos `width`/`height` del HTML.
 - `@astrojs/sitemap` debe quedar en `3.2.1` (`package.json`) — versiones más nuevas (3.7.x) rompen el build con Astro 4.16.
+- Atributos HTML estáticos (`pattern="..."`, etc.) escritos directo en un `.astro`: Astro se come una barra invertida simple al compilar (`\-` → `-`, `\.` → `.`). Si el atributo necesita un carácter escapado de verdad, hay que escribir doble barra en el código fuente (`\\-`, `\\.`) para que quede una sola en el HTML final. Ya mordió dos veces: el patrón de validación de correo lo tenía mal en `curso.astro` y `Footer.astro` (guion sin escapar dentro de `[...]`, inválido bajo el modo "v"/unicode-sets de regex que usan los navegadores nuevos — tiraba una excepción de JS real al validar el formulario, no solo un problema cosmético).
