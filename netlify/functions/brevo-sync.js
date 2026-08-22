@@ -96,7 +96,7 @@ export const handler = async (event) => {
         attributes: {
           NOMBRE: nombre,
           WHATSAPP: whatsappLead,
-          FECHA_PREFERENCIA: taller,
+          TALLER: taller,
           TURNO_PREFERENCIA: data.turno || '',
         },
         listIds: [Number(listId)],
