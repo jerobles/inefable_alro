@@ -182,13 +182,26 @@ const productSchema = productos.map((p) => ({
       const form = document.getElementById('form-producto') as HTMLFormElement | null;
       const select = form?.querySelector('select[name="producto"]') as HTMLSelectElement | null;
       const nombreInput = form?.querySelector('input[name="nombre"]') as HTMLInputElement | null;
+      const formSection = document.querySelector('.tienda-form') as HTMLElement | null;
       if (!form || !select) return;
 
       document.querySelectorAll('[data-producto-option]').forEach((btn) => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
           const value = btn.getAttribute('data-producto-option');
           if (value) select.value = value;
-          setTimeout(() => nombreInput?.focus(), 500);
+
+          // Scroll controlado en un solo paso (compensando el header fijo), en vez de
+          // dejar que el salto de ancla y el focus del input se disparen por separado.
+          const header = document.querySelector('.site-header') as HTMLElement | null;
+          const headerHeight = header?.offsetHeight ?? 0;
+          const target = formSection ?? form;
+          const targetTop = target.getBoundingClientRect().top + window.scrollY - headerHeight - 16;
+          window.scrollTo({ top: targetTop, behavior: 'smooth' });
+
+          formSection?.classList.add('tienda-form--highlight');
+          setTimeout(() => formSection?.classList.remove('tienda-form--highlight'), 1400);
+          setTimeout(() => nombreInput?.focus({ preventScroll: true }), 650);
         });
       });
     }
@@ -276,13 +289,23 @@ const productSchema = productos.map((p) => ({
     .prod-card__precios li:first-child { border-top: none; }
     .prod-card__cta { text-align: center; margin-top: auto; }
 
-    .tienda-form { padding: 96px 0; background: var(--bg); }
+    .tienda-form { padding: 96px 0; background: var(--bg); overflow: hidden; }
+    .tienda-form__form {
+      border-radius: var(--radius);
+      box-shadow: 0 0 0 0 rgba(201,138,69,0);
+      transition: box-shadow .5s ease;
+    }
+    .tienda-form--highlight .tienda-form__form {
+      box-shadow: 0 0 0 3px rgba(201,138,69,0.4);
+    }
     .tienda-form__grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 64px; }
+    .tienda-form__intro, .tienda-form__form { min-width: 0; }
     .tienda-form__intro p { max-width: 400px; margin-bottom: 24px; }
     .tienda-form__form {
       display: flex;
       flex-direction: column;
       gap: 18px;
+      min-width: 0;
     }
     .tienda-form__form label {
       display: flex;
@@ -290,6 +313,7 @@ const productSchema = productos.map((p) => ({
       gap: 8px;
       font-size: 0.85rem;
       color: var(--cream-2);
+      min-width: 0;
     }
     .tienda-form__form input[type="text"],
     .tienda-form__form input[type="tel"],
@@ -302,6 +326,8 @@ const productSchema = productos.map((p) => ({
       border-radius: var(--radius);
       font-size: 0.95rem;
       font-family: var(--font-body);
+      width: 100%;
+      min-width: 0;
     }
     .tienda-form__form input:focus, .tienda-form__form select:focus {
       outline: 2px solid var(--accent);

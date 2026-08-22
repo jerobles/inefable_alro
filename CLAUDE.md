@@ -115,7 +115,10 @@ Proyecto compila sin errores (`npm run build`) y **ya está desplegado y en vivo
 3. Configurar Google Analytics (pendiente hasta tener el dominio final, GA lo pide en su configuración)
 4. Widget de Instagram en la home (esperando que el usuario conecte su cuenta en snapwidget.com y pase el código embed)
 5. Seguir ajustes de diseño puntuales (el usuario los va revisando y pidiendo de a poco)
-6. Fase futura (no ahora): pago Wompi para el curso, **tienda con pago real (Fase 8 completa, Shopify Buy Button, ~$25-39 USD/mes)**, suscripciones — la arquitectura ya lo permite sin romper nada existente
+6. **Pago en línea (aclarado 2026-08-22, corrige suposición anterior del plan que decía "Wompi"):** el cliente ya usa **Mercado Pago** para cobrar el curso con tarjeta (cuenta propia del cliente, manejo manual hoy). Wompi y Mercado Pago son pasarelas distintas que no se conectan entre sí — para no manejar dos proveedores, lo lógico es integrar Mercado Pago, no Wompi. Opciones evaluadas (sin necesitar Shopify):
+   - **Link de pago de Mercado Pago** — cero código, se genera manual desde el panel de Mercado Pago por pedido y se manda por WhatsApp. Se puede activar ya, sin tocar el sitio.
+   - **Checkout Pro de Mercado Pago** — sí requiere desarrollo (una función de Netlify que arma una "preferencia" de pago con la lista de productos/cantidades del pedido, usando el Access Token de Mercado Pago del cliente; el comprador es redirigido a la página de pago de Mercado Pago y vuelve al sitio). Soporta varios productos en un mismo pago de forma nativa (a diferencia del widget simple de Wompi, pensado para un solo monto fijo). Más liviano que Shopify, pero no trivial — pendiente de decidir con el usuario si se hace ya o se deja para cuando tengan el dominio conectado. Requiere que el cliente comparta su Access Token de Mercado Pago.
+   - Tienda con pago real vía Shopify Buy Button (~$25-39 USD/mes) sigue como alternativa de Fase 8b si en el futuro prefieren un carrito de compras completo en vez de este flujo más simple.
 
 ## Herramientas instaladas en esta máquina (fuera del proyecto)
 

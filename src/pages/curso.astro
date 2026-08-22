@@ -304,12 +304,14 @@ const metaDescripcion =
       grid-template-columns: 1fr 1.1fr;
       gap: 64px;
     }
+    .curso-form__intro, .curso-form__form { min-width: 0; }
     .curso-form__intro p { max-width: 400px; }
 
     .curso-form__form {
       display: flex;
       flex-direction: column;
       gap: 18px;
+      min-width: 0;
     }
     .curso-form__form label {
       display: flex;
@@ -317,6 +319,7 @@ const metaDescripcion =
       gap: 8px;
       font-size: 0.85rem;
       color: var(--cream-2);
+      min-width: 0;
     }
     .curso-form__form input[type="text"],
     .curso-form__form input[type="tel"],
@@ -329,6 +332,8 @@ const metaDescripcion =
       border-radius: var(--radius);
       font-size: 0.95rem;
       font-family: var(--font-body);
+      width: 100%;
+      min-width: 0;
     }
     .curso-form__form input:focus, .curso-form__form select:focus {
       outline: 2px solid var(--accent);
