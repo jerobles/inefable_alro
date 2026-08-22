@@ -1,5 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const allProductos = await getCollection('productos');
+const destacados = allProductos.filter((p) => p.data.disponible !== false && p.data.destacado);
+
+const formatPrecio = (n: number) => n.toLocaleString('es-CO');
 ---
 
 <Layout title="Ilumina tu espacio" description="Velas artesanales hechas a mano en Colombia. Cera vegetal, fragancias de calidad y diseño minimalista. Ilumina tu espacio con Inefable ALRO.">
@@ -52,6 +58,35 @@ import Layout from '../layouts/Layout.astro';
     </div>
   </section>
 
+  <!-- CATÁLOGO DESTACADO -->
+  <section class="destacados section-light">
+    <div class="container">
+      <div class="destacados__head reveal">
+        <span class="kicker">Nuestras creaciones</span>
+        <h2>Cada vela cuenta una historia</h2>
+        <p>Aún no tenemos pago en línea — completa el formulario en la tienda o escríbenos por WhatsApp y coordinamos tu pedido directo.</p>
+      </div>
+      <div class="destacados__grid">
+        {destacados.map((p) => (
+          <article class="destacados__card reveal">
+            {p.data.imagen && <img src={p.data.imagen} alt={p.data.nombre} width="1080" height="1350" loading="lazy" />}
+            <div class="destacados__card-body">
+              <h3>{p.data.nombre}</h3>
+              <p>
+                {p.data.variantes[0].precio !== undefined
+                  ? `Desde $${formatPrecio(Math.min(...p.data.variantes.filter(v => v.precio !== undefined).map(v => v.precio as number)))} COP`
+                  : 'Por cotización'}
+              </p>
+            </div>
+          </article>
+        ))}
+      </div>
+      <div class="destacados__cta reveal">
+        <a href="/tienda" class="btn btn-primary">Ver catálogo completo</a>
+      </div>
+    </div>
+  </section>
+
   <!-- CALIDAD -->
   <section class="calidad">
     <div class="container">
@@ -80,34 +115,6 @@ import Layout from '../layouts/Layout.astro';
           <h3>Recipientes reutilizables</h3>
           <p>Vidrio y cerámica de estética minimalista, pensados para tener una segunda vida una vez terminada la vela.</p>
         </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- GALERÍA DE PRODUCTOS (sin tienda aún — vitrina + Instagram) -->
-  <section class="galeria section-light">
-    <div class="container">
-      <div class="galeria__head reveal">
-        <span class="kicker">Nuestras creaciones</span>
-        <h2>Cada vela cuenta una historia</h2>
-        <p>La tienda en línea llega pronto. Mientras tanto, escríbenos por WhatsApp o visita nuestro Instagram para conocer disponibilidad y hacer tu pedido.</p>
-      </div>
-      <div class="galeria__grid">
-        <figure class="reveal">
-          <img src="/images/producto-fresas.webp" alt="Vela Postre de Fresas, atmósfera de fresas" width="1440" height="1440" />
-          <figcaption>Postre de Fresas</figcaption>
-        </figure>
-        <figure class="reveal">
-          <img src="/images/producto-jarrita.jpg" alt="Vela artesanal en jarra con diseño de rostro" width="1080" height="1350" />
-          <figcaption>Colección Corazón & Mina</figcaption>
-        </figure>
-        <figure class="reveal">
-          <img src="/images/producto-rosa.jpg" alt="Vela Postre de Fresas al aire libre" width="1080" height="1350" />
-          <figcaption>Ilumina tu espacio</figcaption>
-        </figure>
-      </div>
-      <div class="galeria__cta reveal">
-        <a href="https://www.instagram.com/inefable.alro/" target="_blank" rel="noopener" class="btn btn-primary">Ver catálogo completo en Instagram</a>
       </div>
     </div>
   </section>
@@ -238,29 +245,31 @@ import Layout from '../layouts/Layout.astro';
   .calidad__card h3 { font-size: 1.1rem; margin-bottom: 10px; }
   .calidad__card p { font-size: 0.92rem; margin: 0; }
 
-  /* GALERÍA */
-  .galeria__head { max-width: 560px; margin-bottom: 48px; }
-  .galeria__head p { margin-top: 12px; }
-  .galeria__grid {
+  /* DESTACADOS (catálogo) */
+  .destacados__head { max-width: 560px; margin-bottom: 48px; }
+  .destacados__head p { margin-top: 12px; }
+  .destacados__grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 20px;
   }
-  .galeria__grid figure { margin: 0; overflow: hidden; border-radius: var(--radius); }
-  .galeria__grid img {
-    width: 100%;
-    aspect-ratio: 4/5;
-    object-fit: cover;
-    transition: transform .5s ease;
+  .destacados__card {
+    background: #fff;
+    border: 1px solid rgba(32,26,18,0.1);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
   }
-  .galeria__grid figure:hover img { transform: scale(1.06); }
-  .galeria__grid figcaption {
-    margin-top: 10px;
-    font-size: 0.82rem;
-    letter-spacing: 0.03em;
-    color: #6b5d47;
+  .destacados__card:hover {
+    transform: translateY(-6px);
+    border-color: var(--accent);
+    box-shadow: 0 16px 32px rgba(32,26,18,0.12);
   }
-  .galeria__cta { margin-top: 48px; }
+  .destacados__card img { width: 100%; aspect-ratio: 4/5; object-fit: cover; display: block; }
+  .destacados__card-body { padding: 14px 16px; }
+  .destacados__card-body h3 { font-size: 0.95rem; margin: 0 0 4px; }
+  .destacados__card-body p { font-size: 0.82rem; color: #6b5d47; margin: 0; }
+  .destacados__cta { margin-top: 48px; }
 
   /* TALLER */
   .taller { position: relative; background: var(--bg-2); }
@@ -277,11 +286,11 @@ import Layout from '../layouts/Layout.astro';
     .historia__grid { grid-template-columns: 1fr; }
     .historia__num { display: none; }
     .calidad__grid { grid-template-columns: repeat(2, 1fr); }
-    .galeria__grid { grid-template-columns: 1fr 1fr; }
+    .destacados__grid { grid-template-columns: 1fr 1fr; }
     .taller__grid { grid-template-columns: 1fr; }
   }
   @media (max-width: 560px) {
     .calidad__grid { grid-template-columns: 1fr; }
-    .galeria__grid { grid-template-columns: 1fr; }
+    .destacados__grid { grid-template-columns: 1fr; }
   }
 </style>
