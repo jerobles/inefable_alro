@@ -14,9 +14,9 @@ function parseRecipients(raw) {
     .map((email) => ({ email }));
 }
 
-async function sendBrevoEmail({ apiKey, recipients, subject, htmlContent }) {
-  const senderEmail = process.env.BREVO_SENDER_EMAIL;
-  const senderName = process.env.BREVO_SENDER_NAME || 'Inefable ALRO';
+async function sendBrevoEmail({ apiKey, recipients, subject, htmlContent, senderEmail, senderName }) {
+  senderEmail = senderEmail || process.env.BREVO_SENDER_EMAIL;
+  senderName = senderName || process.env.BREVO_SENDER_NAME || 'Inefable ALRO';
 
   if (!senderEmail) {
     console.warn('[brevo-sync] BREVO_SENDER_EMAIL no configurado todavía, se omite el correo a', recipients);
@@ -139,6 +139,11 @@ export const handler = async (event) => {
     await sendBrevoEmail({
       apiKey,
       recipients: notifyRecipients,
+      // Remitente propio: el correo interno no le llega a clientes, así que no
+      // hace falta esperar el correo corporativo para activarlo (puede ser el
+      // personal). El de confirmación al cliente sigue usando BREVO_SENDER_EMAIL.
+      senderEmail: process.env.BREVO_SENDER_EMAIL_INTERNO || process.env.BREVO_SENDER_EMAIL,
+      senderName: process.env.BREVO_SENDER_NAME_INTERNO || process.env.BREVO_SENDER_NAME,
       subject: `Nueva inscripción: ${nombre || 'Sin nombre'} — ${taller}`,
       htmlContent: `
         <p><strong>Nombre:</strong> ${nombre}</p>
