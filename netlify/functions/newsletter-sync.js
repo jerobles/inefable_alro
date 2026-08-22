@@ -1,4 +1,4 @@
-import { sendBrevoEmail, upsertBrevoContact } from './lib/brevo.js';
+import { parseRecipients, sendBrevoEmail, upsertBrevoContact } from './lib/brevo.js';
 
 export const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -46,6 +46,7 @@ export const handler = async (event) => {
   await sendBrevoEmail({
     apiKey,
     recipients: [{ email, name: nombre || undefined }],
+    bcc: parseRecipients(process.env.BUSINESS_NOTIFY_EMAIL),
     subject: '¡Ya estás suscrito! — Inefable ALRO',
     htmlContent: `
       <p>Hola ${nombre || ''},</p>

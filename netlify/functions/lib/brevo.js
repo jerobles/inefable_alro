@@ -14,7 +14,7 @@ export function parseRecipients(raw) {
     .map((email) => ({ email }));
 }
 
-export async function sendBrevoEmail({ apiKey, recipients, subject, htmlContent, senderEmail, senderName }) {
+export async function sendBrevoEmail({ apiKey, recipients, subject, htmlContent, senderEmail, senderName, bcc }) {
   senderEmail = senderEmail || process.env.BREVO_SENDER_EMAIL;
   senderName = senderName || process.env.BREVO_SENDER_NAME || 'Inefable ALRO';
 
@@ -35,6 +35,7 @@ export async function sendBrevoEmail({ apiKey, recipients, subject, htmlContent,
       body: JSON.stringify({
         sender: { email: senderEmail, name: senderName },
         to: recipients,
+        ...(bcc && bcc.length > 0 ? { bcc } : {}),
         subject,
         htmlContent,
       }),

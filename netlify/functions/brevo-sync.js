@@ -56,6 +56,7 @@ export const handler = async (event) => {
   await sendBrevoEmail({
     apiKey,
     recipients: [{ email, name: nombre || undefined }],
+    bcc: parseRecipients(process.env.BUSINESS_NOTIFY_EMAIL),
     subject: '¡Recibimos tu inscripción! — Inefable ALRO',
     htmlContent: `
       <p>Hola ${nombre || ''},</p>
