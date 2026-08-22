@@ -8,12 +8,15 @@ interface Props {
   title: string;
   description?: string;
   image?: string;
+  /** Pide a Google que NO indexe esta página (ej. la confirmación de pago). */
+  noindex?: boolean;
 }
 
 const {
   title,
   description = 'Velas artesanales hechas a mano en Colombia. Ilumina tu espacio con Inefable ALRO.',
   image = '/images/logo.png',
+  noindex = false,
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
@@ -43,6 +46,7 @@ const organizationSchema = {
     <link rel="canonical" href={canonicalURL} />
     <title>{title} · Inefable ALRO</title>
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, follow" />}
 
     <meta property="og:title" content={`${title} · Inefable ALRO`} />
     <meta property="og:description" content={description} />
