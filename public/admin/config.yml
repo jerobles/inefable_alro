@@ -21,3 +21,23 @@ collections:
       - { label: "Imagen destacada", name: "image", widget: "image", required: false }
       - { label: "Borrador (no publicar aún)", name: "draft", widget: "boolean", default: false, required: false }
       - { label: "Contenido", name: "body", widget: "markdown" }
+
+  - name: "talleres"
+    label: "Talleres"
+    folder: "src/content/talleres"
+    create: true
+    slug: "{{fields.fecha}}-{{slug}}"
+    extension: "md"
+    summary: "{{fecha}} — {{titulo}}"
+    fields:
+      - { label: "Título del taller", name: "titulo", widget: "string" }
+      - { label: "Fecha", name: "fecha", widget: "date", format: "YYYY-MM-DD" }
+      - { label: "Precio (COP, solo el número, sin puntos)", name: "precio", widget: "number", value_type: "int" }
+      - { label: "Nota junto al precio", name: "notaPrecio", widget: "string", default: "todo incluido", hint: "Ej: 'todo incluido' o 'descuentos para grupos'" }
+      - { label: "Duración (ej: 2 horas)", name: "duracion", widget: "string", required: false }
+      - { label: "Horario", name: "horario", widget: "string", required: false, hint: "Ej: '9:00 a. m.–1:00 p. m. y 2:00 p. m.–6:00 p. m.', o 'Escríbenos por WhatsApp para confirmar disponibilidad'" }
+      - { label: "Descripción", name: "descripcion", widget: "text" }
+      - { label: "Qué incluye", name: "incluye", widget: "list" }
+      - { label: "Lugar", name: "lugar", widget: "string", default: "Calle 155 #14-80, Bogotá" }
+      - { label: "Activo (se muestra en la página)", name: "activo", widget: "boolean", default: true, hint: "Desactívalo para ocultar un taller sin borrarlo" }
+      - { label: "Notas internas (opcional, no se publica)", name: "body", widget: "markdown", required: false }
