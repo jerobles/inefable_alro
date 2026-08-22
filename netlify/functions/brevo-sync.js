@@ -4,14 +4,25 @@ function toE164Colombia(phone) {
   return digits.startsWith('+') ? digits : `+57${digits}`;
 }
 
-async function sendBrevoEmail({ apiKey, to, toName, subject, htmlContent }) {
+// Convierte "correo1@x.com, correo2@y.com" en [{email:'correo1@x.com'}, {email:'correo2@y.com'}]
+function parseRecipients(raw) {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean)
+    .map((email) => ({ email }));
+}
+
+async function sendBrevoEmail({ apiKey, recipients, subject, htmlContent }) {
   const senderEmail = process.env.BREVO_SENDER_EMAIL;
   const senderName = process.env.BREVO_SENDER_NAME || 'Inefable ALRO';
 
   if (!senderEmail) {
-    console.warn('[brevo-sync] BREVO_SENDER_EMAIL no configurado todavía, se omite el correo a', to);
+    console.warn('[brevo-sync] BREVO_SENDER_EMAIL no configurado todavía, se omite el correo a', recipients);
     return;
   }
+  if (!recipients || recipients.length === 0) return;
 
   try {
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -23,7 +34,7 @@ async function sendBrevoEmail({ apiKey, to, toName, subject, htmlContent }) {
       },
       body: JSON.stringify({
         sender: { email: senderEmail, name: senderName },
-        to: [{ email: to, name: toName || undefined }],
+        to: recipients,
         subject,
         htmlContent,
       }),
@@ -31,11 +42,11 @@ async function sendBrevoEmail({ apiKey, to, toName, subject, htmlContent }) {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('[brevo-sync] Brevo (correo) respondió con error para', to, response.status, errText);
+      console.error('[brevo-sync] Brevo (correo) respondió con error para', recipients, response.status, errText);
     }
   } catch (err) {
     // Un correo que falla nunca debe tumbar el webhook completo (evita que Netlify lo desactive).
-    console.error('[brevo-sync] Fallo al enviar correo a', to, err);
+    console.error('[brevo-sync] Fallo al enviar correo a', recipients, err);
   }
 }
 
@@ -108,8 +119,7 @@ export const handler = async (event) => {
 
   await sendBrevoEmail({
     apiKey,
-    to: email,
-    toName: nombre,
+    recipients: [{ email, name: nombre || undefined }],
     subject: '¡Recibimos tu inscripción! — Inefable ALRO',
     htmlContent: `
       <p>Hola ${nombre || ''},</p>
@@ -118,8 +128,8 @@ export const handler = async (event) => {
     `,
   });
 
-  const notifyEmail = process.env.BUSINESS_NOTIFY_EMAIL;
-  if (notifyEmail) {
+  const notifyRecipients = parseRecipients(process.env.BUSINESS_NOTIFY_EMAIL);
+  if (notifyRecipients.length > 0) {
     const waLink = whatsappLead
       ? `https://wa.me/${whatsappLead.replace('+', '')}?text=${encodeURIComponent(
           `¡Hola ${nombre}! Te escribo de Inefable ALRO por tu inscripción a ${taller}.`
@@ -128,8 +138,7 @@ export const handler = async (event) => {
 
     await sendBrevoEmail({
       apiKey,
-      to: notifyEmail,
-      toName: 'Inefable ALRO',
+      recipients: notifyRecipients,
       subject: `Nueva inscripción: ${nombre || 'Sin nombre'} — ${taller}`,
       htmlContent: `
         <p><strong>Nombre:</strong> ${nombre}</p>
