@@ -10,7 +10,7 @@ const links = [
 <header class="site-header" data-nav>
   <div class="container site-header__inner">
     <a href="/" class="site-header__brand">
-      <img src="/images/logo-badge.svg" alt="Inefable ALRO" width="44" height="44" />
+      <img src="/images/logo-badge.svg" alt="Inefable ALRO" width="56" height="56" />
       <span>Inefable <em>ALRO</em></span>
     </a>
 
@@ -57,7 +57,12 @@ const links = [
     font-size: 1.25rem;
     color: var(--cream);
   }
-  .site-header__brand img { border-radius: 50%; }
+  .site-header__brand img {
+    border-radius: 50%;
+    background: var(--cream);
+    padding: 4px;
+    box-shadow: 0 0 0 1px var(--line);
+  }
   .site-header__brand em { color: var(--gold); font-style: italic; }
 
   .site-header__nav {

@@ -5,7 +5,7 @@ const year = new Date().getFullYear();
 <footer class="site-footer">
   <div class="container site-footer__inner">
     <div class="site-footer__brand">
-      <img src="/images/logo-badge.svg" alt="Inefable ALRO" width="56" height="56" />
+      <img src="/images/logo-badge.svg" alt="Inefable ALRO" width="64" height="64" />
       <p class="site-footer__tag">Ilumina tu espacio. Hecho a mano.</p>
     </div>
 
@@ -51,7 +51,12 @@ const year = new Date().getFullYear();
     flex-direction: column;
     gap: 14px;
   }
-  .site-footer__brand img { border-radius: 50%; }
+  .site-footer__brand img {
+    border-radius: 50%;
+    background: var(--cream);
+    padding: 5px;
+    box-shadow: 0 0 0 1px var(--line);
+  }
   .site-footer__tag {
     font-family: var(--font-display);
     font-style: italic;
