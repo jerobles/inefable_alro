@@ -19,6 +19,11 @@ const {
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const absoluteImage = new URL(image, Astro.site);
 
+// Google Analytics 4. Solo se inyecta en el sitio publicado (`npm run build`), no en
+// `npm run dev` — así las pruebas locales no cuentan como visitas reales.
+const GA_ID = 'G-RLDQTW4MVH';
+const cargarAnalytics = import.meta.env.PROD;
+
 const organizationSchema = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
@@ -47,6 +52,21 @@ const organizationSchema = {
     <meta name="twitter:card" content="summary_large_image" />
 
     <script type="application/ld+json" set:html={JSON.stringify(organizationSchema)} />
+
+    {cargarAnalytics && (
+      <>
+        <script async is:inline src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
+        {/* Se usa set:html en vez de define:vars a propósito: define:vars envuelve el
+            script en una función cerrada y `gtag` deja de ser global, lo que rompería
+            cualquier medición de eventos que queramos agregar después. */}
+        <script is:inline set:html={`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${GA_ID}');
+        `} />
+      </>
+    )}
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
