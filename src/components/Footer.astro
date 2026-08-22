@@ -113,13 +113,16 @@ const year = new Date().getFullYear();
   }
   .site-footer__newsletter {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 24px;
+    gap: 24px 40px;
     padding-bottom: 40px;
     margin-bottom: 40px;
     border-bottom: 1px solid var(--line);
+  }
+  .site-footer__newsletter-text {
+    flex: 1 1 340px;
   }
   .site-footer__newsletter-text h3 {
     font-size: 1.2rem;
@@ -131,6 +134,8 @@ const year = new Date().getFullYear();
     flex-wrap: wrap;
     gap: 10px;
     align-items: flex-start;
+    flex: 2 1 480px;
+    justify-content: flex-end;
   }
   .site-footer__newsletter-form input[type="text"],
   .site-footer__newsletter-form input[type="email"] {
@@ -141,7 +146,8 @@ const year = new Date().getFullYear();
     border-radius: var(--radius);
     font-size: 0.9rem;
     font-family: var(--font-body);
-    width: 200px;
+    flex: 1 1 180px;
+    min-width: 160px;
   }
   .site-footer__newsletter-form input:focus {
     outline: 2px solid var(--accent);

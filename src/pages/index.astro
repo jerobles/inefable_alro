@@ -29,7 +29,7 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
       </p>
       <div class="hero__actions reveal">
         <a href="/curso" class="btn btn-primary">Reserva el taller de velas</a>
-        <a href="https://www.instagram.com/inefable.alro/" target="_blank" rel="noopener" class="btn btn-ghost">Ver en Instagram</a>
+        <a href="/tienda" class="btn btn-ghost">Ver el catálogo</a>
       </div>
     </div>
   </section>
@@ -59,7 +59,7 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
   </section>
 
   <!-- CATÁLOGO DESTACADO -->
-  <section class="destacados section-light">
+  <section class="destacados">
     <div class="container">
       <div class="destacados__head reveal">
         <span class="kicker">Nuestras creaciones</span>
@@ -88,7 +88,7 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
   </section>
 
   <!-- CALIDAD -->
-  <section class="calidad">
+  <section class="calidad section-light">
     <div class="container">
       <div class="calidad__head reveal">
         <span class="kicker">Calidad en cada elemento</span>
@@ -231,8 +231,8 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
     gap: 28px;
   }
   .calidad__card {
-    background: var(--bg-3);
-    border: 1px solid var(--line);
+    background: #fff;
+    border: 1px solid rgba(32,26,18,0.1);
     padding: 32px 24px;
     border-radius: var(--radius);
   }
@@ -254,8 +254,8 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
     gap: 20px;
   }
   .destacados__card {
-    background: #fff;
-    border: 1px solid rgba(32,26,18,0.1);
+    background: var(--bg-3);
+    border: 1px solid var(--line);
     border-radius: var(--radius);
     overflow: hidden;
     transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
@@ -263,12 +263,12 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
   .destacados__card:hover {
     transform: translateY(-6px);
     border-color: var(--accent);
-    box-shadow: 0 16px 32px rgba(32,26,18,0.12);
+    box-shadow: 0 16px 32px rgba(0,0,0,0.35);
   }
   .destacados__card img { width: 100%; aspect-ratio: 4/5; object-fit: cover; display: block; }
   .destacados__card-body { padding: 14px 16px; }
-  .destacados__card-body h3 { font-size: 0.95rem; margin: 0 0 4px; }
-  .destacados__card-body p { font-size: 0.82rem; color: #6b5d47; margin: 0; }
+  .destacados__card-body h3 { font-size: 0.95rem; margin: 0 0 4px; color: var(--cream); }
+  .destacados__card-body p { font-size: 0.82rem; color: var(--cream-3); margin: 0; }
   .destacados__cta { margin-top: 48px; }
 
   /* TALLER */
