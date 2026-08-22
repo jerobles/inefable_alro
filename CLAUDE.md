@@ -33,7 +33,7 @@ Arquetipo "Editorial Dark Warm" adaptado a velas:
 ```
 src/
   layouts/Layout.astro       ← head (SEO, canonical, JSON-LD Organization), header, footer, whatsapp button, script de reveals
-  components/                ← Header.astro, Footer.astro, WhatsAppButton.astro
+  components/                ← Header.astro, Footer.astro (incluye form de newsletter), WhatsAppButton.astro (flotante), WhatsAppBanner.astro (banner con ícono+número+CTA, usado en /curso)
   content/
     config.ts                  ← schemas de las colecciones (blog, talleres)
     blog/*.md                    ← posts del blog (frontmatter: title, description, date, image, draft)
@@ -93,9 +93,12 @@ Proyecto compila sin errores (`npm run build`) y **ya está desplegado y en vivo
      - `BREVO_NEWSLETTER_LIST_ID` = `6` — lista "Newsletter" ya creada en Brevo, variable **agregada por el usuario en Netlify**.
      - **Pendiente, recién se puede hacer después de publicar** (Netlify detecta el formulario "newsletter" al desplegar, no antes): agregar un "Outgoing webhook" en Forms → Form notifications apuntando a `.../.netlify/functions/newsletter-sync`, **limitado específicamente al formulario "newsletter"** (no "any form").
      - **Corrección pendiente en el webhook existente del taller:** el outgoing webhook de `brevo-sync` quedó configurado para dispararse con "any form" (cualquier formulario) — válido cuando solo existía un formulario, pero ahora que hay dos hay que editarlo para limitarlo solo a "pre-inscripcion-curso". Si no se corrige, las inscripciones al newsletter también dispararían brevo-sync (mal) y viceversa.
-   - Módulo 5 ⚠️ ajustado — banner visual de WhatsApp + efecto hover en las tarjetas de taller. El logo y el flyer de la home (parte de este módulo) **ya se hicieron antes de tiempo**, a pedido del usuario:
-     - `logo-badge.svg` ahora lleva un disco crema (`var(--cream)`) detrás en vez de quedar transparente sobre el fondo oscuro (casi no se veía), y es más grande (56px header, 64px footer)
-     - El flyer del taller en la home (`curso-flyer.webp`, tenía el WhatsApp viejo escrito en la imagen) se reemplazó por un `<video>` en loop (`public/videos/curso-experiencia.mp4`, 552KB, 10s, comprimido con ffmpeg desde un video real de 26.6MB que pasó el usuario) que respeta `prefers-reduced-motion`. `curso-flyer.webp` se eliminó del proyecto.
+   - Módulo 5 ✅ hecho — banner visual de WhatsApp + efecto hover en las tarjetas de taller:
+     - Nuevo componente `src/components/WhatsAppBanner.astro` (ícono + número grande + CTA), reemplaza el link de solo texto en `/curso`. Reutilizable si se quiere en otras páginas.
+     - `.taller-card:hover` — se levanta 6px, borde ámbar, sombra suave (mismo patrón que la galería del inicio).
+     - El logo y el flyer de la home (también parte de este módulo) **ya se habían hecho antes de tiempo**, a pedido del usuario: `logo-badge.svg` con disco crema detrás (antes casi no se veía sobre fondo oscuro) y más grande (56px header, 64px footer); el flyer viejo (`curso-flyer.webp`, WhatsApp desactualizado escrito en la imagen) se reemplazó por un `<video>` en loop (`public/videos/curso-experiencia.mp4`, 552KB, 10s, comprimido con ffmpeg) que respeta `prefers-reduced-motion`.
+
+   **Los 5 módulos del rediseño de talleres están completos en código.** Falta: los 2 pasos de configuración de Forms/webhooks en Netlify (ver Módulo 4) y publicar — el usuario pidió dejar las pruebas para el final, después de revisar todo.
 1. **Tarea futura, no bloqueante:** notificación instantánea por WhatsApp (no correo) al número de la empresa vía CallMeBot cuando alguien se inscribe — al usuario le gustó la idea pero no gestiona ese número, así que alguien más debe activarlo (mandarle un mensaje al bot de CallMeBot desde ese WhatsApp para obtener el API key) antes de poder implementarlo
 2. Comprar y conectar el dominio `inefable.alro` en Netlify (dominio en sí no es gratis, ~$12-15 USD/año; conectarlo a Netlify sí lo es)
 3. Configurar Google Analytics (pendiente hasta tener el dominio final, GA lo pide en su configuración)
