@@ -1,0 +1,337 @@
+---
+import Layout from '../layouts/Layout.astro';
+import WhatsAppBanner from '../components/WhatsAppBanner.astro';
+import { getCollection } from 'astro:content';
+
+const allProductos = await getCollection('productos');
+const productos = allProductos.filter((p) => p.data.disponible !== false);
+
+const CATEGORIAS = [
+  { slug: 'velas-aromaticas', label: 'Velas aromáticas' },
+  { slug: 'bebidas-frias', label: 'Bebidas frías' },
+  { slug: 'postres', label: 'Postres' },
+  { slug: 'velas-intencion', label: 'Velas de intención' },
+  { slug: 'varios', label: 'Varios' },
+  { slug: 'recordatorios', label: 'Recordatorios' },
+];
+
+const grupos = CATEGORIAS.map((cat) => ({
+  ...cat,
+  items: productos.filter((p) => p.data.categoria === cat.slug),
+})).filter((g) => g.items.length > 0);
+
+const formatPrecio = (n: number) => n.toLocaleString('es-CO');
+
+const productoOptionLabel = (p: (typeof productos)[number]) => p.data.nombre;
+
+const productSchema = productos.map((p) => ({
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: p.data.nombre,
+  description: p.data.descripcion,
+  image: p.data.imagen ? new URL(p.data.imagen, Astro.site).href : undefined,
+  offers: p.data.variantes
+    .filter((v) => v.precio !== undefined)
+    .map((v) => ({
+      '@type': 'Offer',
+      price: String(v.precio),
+      priceCurrency: 'COP',
+      availability: 'https://schema.org/InStock',
+      url: new URL('/tienda', Astro.site).href,
+    })),
+}));
+---
+
+<Layout
+  title="Tienda"
+  description="Catálogo completo de velas artesanales Inefable ALRO: aromáticas, decorativas, de intención y recordatorios para eventos. Escríbenos para hacer tu pedido."
+>
+  <script type="application/ld+json" set:html={JSON.stringify(productSchema)} />
+
+  <section class="tienda-hero">
+    <div class="grain"></div>
+    <div class="container">
+      <p class="kicker reveal">Cada vela cuenta una historia</p>
+      <h1 class="reveal">Nuestro <em>catálogo</em></h1>
+      <p class="tienda-hero__sub reveal">
+        Aún no tenemos pago en línea — completa el formulario o escríbenos por WhatsApp y coordinamos tu pedido directo.
+      </p>
+    </div>
+  </section>
+
+  {grupos.map((grupo) => (
+    <section class="tienda-grupo section-light">
+      <div class="container">
+        <h2 class="reveal">{grupo.label}</h2>
+        <div class="tienda-grid">
+          {grupo.items.map((p) => (
+            <article class="prod-card reveal">
+              <div class="prod-card__img">
+                {p.data.imagen ? (
+                  <img src={p.data.imagen} alt={p.data.nombre} width="1080" height="1350" loading="lazy" />
+                ) : (
+                  <div class="prod-card__placeholder" aria-hidden="true">
+                    <span>🕯️</span>
+                    <small>Foto próximamente</small>
+                  </div>
+                )}
+              </div>
+              <div class="prod-card__body">
+                <h3>{p.data.nombre}</h3>
+                <p class="prod-card__desc">{p.data.descripcion}</p>
+                {p.data.notasOlfativas && <p class="prod-card__notas"><strong>Notas:</strong> {p.data.notasOlfativas}</p>}
+                <ul class="prod-card__precios">
+                  {p.data.variantes.map((v) => (
+                    <li>
+                      <span>{v.presentacion}</span>
+                      <span>{v.precio !== undefined ? `$${formatPrecio(v.precio)} COP` : 'Por cotización'}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a href="#form-producto" class="btn btn-primary prod-card__cta" data-producto-option={productoOptionLabel(p)}>Quiero este producto</a>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <section class="tienda-form">
+    <div class="container tienda-form__grid">
+      <div class="tienda-form__intro reveal">
+        <span class="kicker">Haz tu pedido</span>
+        <h2>Cuéntanos qué te gustó y te contactamos por WhatsApp</h2>
+        <p>
+          Completa el formulario con tus datos y el producto que te interesa. Te escribimos por WhatsApp para
+          confirmar disponibilidad, cantidades y coordinar el pago y la entrega.
+        </p>
+        <WhatsAppBanner texto="¿Prefieres escribirnos directo?" mensaje="¡Hola! Quiero hacer un pedido de Inefable ALRO 🕯️" />
+      </div>
+
+      <form
+        class="tienda-form__form reveal"
+        name="pedido-producto"
+        method="POST"
+        data-netlify="true"
+        netlify-honeypot="bot-field-prod"
+        id="form-producto"
+      >
+        <input type="hidden" name="form-name" value="pedido-producto" />
+        <p class="hidden-field"><label>No llenar: <input name="bot-field-prod" /></label></p>
+
+        <label>
+          Nombre completo
+          <input type="text" name="nombre" required />
+        </label>
+        <label>
+          Número de WhatsApp
+          <div class="phone-field">
+            <span class="phone-field__prefix">+57</span>
+            <input
+              type="tel"
+              name="whatsapp"
+              required
+              inputmode="numeric"
+              pattern="3[0-9]{9}"
+              maxlength="10"
+              placeholder="3001234567"
+              title="Escribe tu celular colombiano: 10 dígitos, comenzando por 3"
+            />
+          </div>
+        </label>
+        <label>
+          Correo electrónico
+          <input
+            type="email"
+            name="correo"
+            required
+            pattern="[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}"
+            title="Escribe un correo válido, por ejemplo nombre@dominio.com"
+          />
+        </label>
+        <label>
+          ¿Qué producto te interesa?
+          <select name="producto">
+            {productos.map((p) => <option>{productoOptionLabel(p)}</option>)}
+            <option>Varios productos / no estoy segur@</option>
+          </select>
+        </label>
+        <label>
+          Cantidad aproximada
+          <input type="text" name="cantidad" placeholder="Ej: 2 unidades" />
+        </label>
+
+        <label class="checkbox-field">
+          <input type="checkbox" name="acepta_privacidad" required />
+          <span>He leído y acepto la <a href="/privacidad">política de privacidad</a>.</span>
+        </label>
+
+        <button type="submit" class="btn btn-primary">Enviar pedido</button>
+        <p class="tienda-form__status" data-form-status role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </section>
+
+  <script>
+    function safe(fn: () => void, name: string) {
+      try { fn(); } catch (e) { console.warn('[' + name + ']', e); }
+    }
+
+    function initProductoCtas() {
+      const form = document.getElementById('form-producto') as HTMLFormElement | null;
+      const select = form?.querySelector('select[name="producto"]') as HTMLSelectElement | null;
+      const nombreInput = form?.querySelector('input[name="nombre"]') as HTMLInputElement | null;
+      if (!form || !select) return;
+
+      document.querySelectorAll('[data-producto-option]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const value = btn.getAttribute('data-producto-option');
+          if (value) select.value = value;
+          setTimeout(() => nombreInput?.focus(), 500);
+        });
+      });
+    }
+
+    function initTiendaForm() {
+      const form = document.getElementById('form-producto') as HTMLFormElement | null;
+      if (!form) return;
+      const status = form.querySelector('[data-form-status]');
+
+      const whatsappInput = form.querySelector('input[name="whatsapp"]') as HTMLInputElement | null;
+      if (whatsappInput) {
+        whatsappInput.addEventListener('input', () => {
+          whatsappInput.value = whatsappInput.value.replace(/\D/g, '').slice(0, 10);
+        });
+      }
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!form.reportValidity()) return;
+
+        const data = new FormData(form);
+        const body = new URLSearchParams(data as any).toString();
+
+        fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body,
+        })
+          .then(() => {
+            if (status) status.textContent = '¡Listo! Te contactaremos muy pronto por WhatsApp para confirmar tu pedido.';
+            form.reset();
+          })
+          .catch(() => {
+            if (status) status.textContent = 'Hubo un problema al enviar. Escríbenos directo por WhatsApp, por favor.';
+          });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      safe(initTiendaForm, 'initTiendaForm');
+      safe(initProductoCtas, 'initProductoCtas');
+    });
+  </script>
+
+  <style>
+    .tienda-hero { position: relative; padding: 180px 0 80px; background: var(--bg-2); }
+    .tienda-hero__sub { max-width: 560px; margin-top: 18px; font-size: 1.05rem; }
+
+    .tienda-grupo { padding: 56px 0; }
+    .tienda-grupo h2 { margin-bottom: 28px; }
+    .tienda-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .prod-card {
+      background: #fff;
+      border: 1px solid rgba(32,26,18,0.1);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+    .prod-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--accent);
+      box-shadow: 0 16px 32px rgba(32,26,18,0.12);
+    }
+    .prod-card__img { aspect-ratio: 4/5; overflow: hidden; background: var(--paper); }
+    .prod-card__img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .prod-card__placeholder {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; color: var(--cream-3); background: var(--paper);
+    }
+    .prod-card__placeholder span { font-size: 2rem; }
+    .prod-card__placeholder small { font-size: 0.75rem; }
+    .prod-card__body { padding: 20px; display: flex; flex-direction: column; flex: 1; }
+    .prod-card h3 { font-size: 1.1rem; margin: 0 0 8px; }
+    .prod-card__desc { font-size: 0.85rem; color: #6b5d47; margin: 0 0 10px; flex: 1; }
+    .prod-card__notas { font-size: 0.78rem; color: #6b5d47; margin: 0 0 12px; }
+    .prod-card__precios { list-style: none; padding: 0; margin: 0 0 16px; font-size: 0.85rem; }
+    .prod-card__precios li { display: flex; justify-content: space-between; padding: 4px 0; border-top: 1px solid rgba(32,26,18,0.08); color: var(--ink); }
+    .prod-card__precios li:first-child { border-top: none; }
+    .prod-card__cta { text-align: center; margin-top: auto; }
+
+    .tienda-form { padding: 96px 0; background: var(--bg); }
+    .tienda-form__grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 64px; }
+    .tienda-form__intro p { max-width: 400px; margin-bottom: 24px; }
+    .tienda-form__form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .tienda-form__form label {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--cream-2);
+    }
+    .tienda-form__form input[type="text"],
+    .tienda-form__form input[type="tel"],
+    .tienda-form__form input[type="email"],
+    .tienda-form__form select {
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      color: var(--cream);
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      font-family: var(--font-body);
+    }
+    .tienda-form__form input:focus, .tienda-form__form select:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+    .phone-field { display: flex; gap: 8px; }
+    .phone-field__prefix {
+      display: flex;
+      align-items: center;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      color: var(--cream-2);
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+    .phone-field input { flex: 1; min-width: 0; }
+    .checkbox-field { flex-direction: row !important; align-items: flex-start; gap: 10px !important; }
+    .checkbox-field input { margin-top: 4px; }
+    .checkbox-field a { color: var(--accent); }
+    .tienda-form__status { min-height: 1.2em; color: var(--gold); font-size: 0.9rem; }
+    .hidden-field { position: absolute; left: -9999px; }
+
+    @media (max-width: 900px) {
+      .tienda-grid { grid-template-columns: 1fr 1fr; }
+      .tienda-form__grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .tienda-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</Layout>
