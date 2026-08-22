@@ -3,3 +3,6 @@ dist/
 .astro/
 .DS_Store
 .env
+
+# Generado en cada build por scripts/generar-datos-pago.mjs — no es la fuente de la verdad
+netlify/functions/data/

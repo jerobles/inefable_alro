@@ -41,24 +41,31 @@ src/
     productos/*.md                 ← catálogo (41 productos reales, frontmatter: nombre, categoria, descripcion, notasOlfativas, detallesTecnicos, modoDeUso, variantes [{presentacion, precio}], imagen, destacado, disponible) — editable desde /admin
   pages/
     index.astro                ← inicio (hero = banner-principal.webp, video del taller en loop, destacados del catálogo justo después de Historia)
-    curso.astro                 ← lee la colección "talleres" (getCollection): tarjetas + form + JSON-LD, todo dinámico
-    tienda.astro                 ← lee la colección "productos": catálogo completo por categoría + form de pedido, JSON-LD Product
+    curso.astro                 ← lee la colección "talleres" (getCollection): tarjetas + form + JSON-LD, todo dinámico. Al enviar, redirige a Mercado Pago si el taller elegido tiene slug (precio fijo).
+    tienda.astro                 ← lee la colección "productos": catálogo completo por categoría + form de pedido (producto, presentación, cantidad, zona de entrega, dirección), JSON-LD Product. Entregas en Bogotá redirigen a Mercado Pago; otras ciudades siguen el flujo manual por WhatsApp.
+    pago-confirmado.astro         ← página de vuelta tras pagar en Mercado Pago (back_urls success/pending), con CTA a WhatsApp para coordinar entrega
     blog/index.astro            ← listado
     blog/[...slug].astro        ← post individual
     privacidad.astro
     terminos.astro
+scripts/
+  generar-datos-pago.mjs      ← corre antes de "astro build" (ver package.json): exporta precios de talleres/productos a netlify/functions/data/*.json, para que las funciones de pago calculen el monto sin confiar en lo que mande el navegador
 netlify/
   functions/
-    lib/brevo.js              ← helpers compartidos de Brevo (sendBrevoEmail, parseRecipients, toE164Colombia, upsertBrevoContact)
+    data/*.json                ← generado en cada build por el script de arriba, NO se sube a git (.gitignore)
+    lib/brevo.js              ← helpers compartidos de Brevo (sendBrevoEmail con bcc opcional, parseRecipients, toE164Colombia, upsertBrevoContact)
+    lib/mercadopago.js          ← crearPreferencia() — arma el link de pago (fetch directo a la API de Mercado Pago, sin SDK)
     brevo-sync.js               ← webhook del form del taller: crea/actualiza contacto en Brevo + 2 correos (confirmación al lead + notificación interna)
     newsletter-sync.js          ← webhook del form de newsletter (footer): crea/actualiza contacto en su propia lista + correo de bienvenida
-    producto-sync.js            ← webhook del form "Quiero este producto" (/tienda): crea/actualiza contacto (atributo PRODUCTO_INTERES) + 2 correos, mismo patrón que brevo-sync
+    producto-sync.js            ← webhook del form "Quiero este producto" (/tienda): crea/actualiza contacto (atributo PRODUCTO_INTERES) + 2 correos, incluye presentación/dirección/zona de entrega en el aviso interno
+    pago-taller.js               ← llamada directa (no webhook) desde curso.astro: arma la preferencia de pago del taller elegido y devuelve el link de checkout
+    pago-producto.js             ← ídem desde tienda.astro: arma el pedido (producto + envío de Bogotá si aplica) y devuelve el link de checkout
 public/
   images/                     ← fotos reales de producto, banner-principal.webp (hero), curso-experiencia-poster.jpg (poster del video), logo.png (favicon/OG), logo-badge.svg (header/footer, recoloreado cream/cream-3, disco crema detrás)
   images/productos/            ← 39 fotos del catálogo, optimizadas a WebP (~1080px)
   videos/curso-experiencia.mp4 ← loop del taller en la home (10s, 552KB, comprimido con ffmpeg)
   admin/                      ← index.html + config.yml (Decap CMS: colecciones "blog", "talleres" y "productos")
-netlify.toml                 ← incluye [functions] directory para brevo-sync
+netlify.toml                 ← [functions] directory + included_files para empaquetar netlify/functions/data/*.json junto con las funciones
 astro.config.mjs             ← incluye integración @astrojs/sitemap (fijar en v3.2.1, versiones más nuevas rompen con Astro 4)
 ```
 
@@ -84,6 +91,21 @@ Proyecto compila sin errores (`npm run build`) y **ya está desplegado y en vivo
 - Dominio real `inefable.alro` **aún no comprado/conectado** — el sitio vive en el subdominio gratis de Netlify mientras tanto
 
 ## Pendiente / próximos pasos
+
+0.3. **Pago en línea con Mercado Pago (2026-08-22, código completo con datos de prueba — falta el Access Token real para probar de punta a punta).** Ver [[pasarela-pago-mercado-pago]] en memoria: el proveedor real es Mercado Pago (no Wompi), misma cuenta que ya usa el cliente para el curso.
+   - **Cómo funciona:** el registro en Brevo (CRM) sigue exactamente el mismo camino de siempre (Netlify Forms → `brevo-sync.js` / `producto-sync.js`, sin tocar esa lógica). Aparte, si el pedido tiene un precio fijo conocido, el formulario llama directo (fetch, no vía webhook) a una función nueva que arma una "preferencia" en Mercado Pago y redirige al comprador a pagar. Al volver, cae en `/pago-confirmado`, que lo invita a coordinar por WhatsApp.
+   - **Taller (`/curso`):** cualquier taller real (no la opción "aún no estoy segur@") redirige a pago — precio tomado de `talleres.json` (generado del content collection), no del navegador.
+   - **Catálogo (`/tienda`):** rediseñado con selector de **presentación** (dinámico según el producto, con precio), **cantidad** numérica, y **zona de entrega**:
+     - **Norte de Bogotá:** envío gratis, pago en línea. Variable `ENVIO_BOGOTA_NORTE_COP` (default `0`).
+     - **Resto de Bogotá:** domicilio $15.000, pago en línea. Variable `ENVIO_BOGOTA_RESTO_COP` (default `15000`) — **tarifas confirmadas por el usuario el 2026-08-22**, ya no son un placeholder.
+     - **Otra ciudad:** sigue el flujo manual de siempre (Netlify Forms → WhatsApp), la transportadora se cotiza caso por caso — no pasa por Mercado Pago.
+     - Productos "Por cotización" (sin precio fijo, ej. recordatorios) nunca intentan pago en línea, sin importar la zona — se detecta tanto en el cliente como en la función (doble chequeo).
+   - **Resiliencia:** si `MP_ACCESS_TOKEN` no está configurado (como ahora) o la llamada a Mercado Pago falla por lo que sea, el formulario NO se rompe — cae de vuelta al mensaje de siempre ("te contactaremos por WhatsApp"), porque el registro en Brevo ya se disparó antes de intentar el pago. Verificado con un dry-run local (`fetch` simulado) cubriendo: taller válido, taller inválido, Bogotá con envío, Bogotá gratis, producto "por cotización" (debe rechazar) y sin token configurado — los 6 casos se comportan como se espera.
+   - **Pendiente del usuario:**
+     1. Conseguir el **Access Token de Mercado Pago** del cliente (panel de desarrolladores, misma cuenta del curso) — se puede empezar con el de **prueba** para hacer un pago de prueba real de punta a punta antes de pasar a producción.
+     2. Configurar `MP_ACCESS_TOKEN` en Netlify con ese valor.
+     3. Confirmar que `ENVIO_BOGOTA_RESTO_COP` ($15.000) sigue vigente al momento de publicar (puede cambiar sin tocar código, solo la variable de entorno — eso sí, redesplegar para que el texto del formulario y el cobro real queden sincronizados).
+   - **No incluido en este alcance (posible mejora futura):** un webhook de Mercado Pago que marque automáticamente el contacto como "pagado" en Brevo — hoy la confirmación del pago solo se ve en el panel de Mercado Pago, no en Brevo.
 
 0. **En curso (2026-08-21): rediseño de talleres**, por módulos, aprobando cada uno con el usuario antes de seguir:
    - Módulo 1 ✅ hecho — datos reales corregidos (WhatsApp, talleres de agosto), botón "Reservar este taller" por tarjeta

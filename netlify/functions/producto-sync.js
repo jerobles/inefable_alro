@@ -33,6 +33,12 @@ export const handler = async (event) => {
   const producto = data.producto || 'un producto del catálogo';
   const cantidad = data.cantidad || '';
   const whatsappLead = toE164Colombia(data.whatsapp);
+  const presentacion = data.presentacion || '';
+  const direccion = data.direccion || '';
+  const entregaLabel =
+    { 'bogota-norte': 'Norte de Bogotá (envío gratis)', 'bogota-resto': 'Resto de Bogotá (domicilio con costo)' }[
+      data.entrega
+    ] || 'Otra ciudad — a coordinar por WhatsApp';
 
   try {
     await upsertBrevoContact({
@@ -81,8 +87,10 @@ export const handler = async (event) => {
       subject: `Nuevo pedido: ${nombre || 'Sin nombre'} — ${producto}`,
       htmlContent: `
         <p><strong>Nombre:</strong> ${nombre}</p>
-        <p><strong>Producto:</strong> ${producto}</p>
+        <p><strong>Producto:</strong> ${producto}${presentacion ? ` — ${presentacion}` : ''}</p>
         <p><strong>Cantidad:</strong> ${cantidad}</p>
+        <p><strong>Entrega:</strong> ${entregaLabel}</p>
+        ${direccion ? `<p><strong>Dirección:</strong> ${direccion}</p>` : ''}
         <p><strong>Correo:</strong> ${email}</p>
         <p><strong>WhatsApp:</strong> ${whatsappLead}</p>
         ${waLink ? `<p><a href="${waLink}" style="display:inline-block;background:#25D366;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">Escríbele por WhatsApp →</a></p>` : ''}

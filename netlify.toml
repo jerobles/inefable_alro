@@ -4,6 +4,9 @@
 
 [functions]
   directory = "netlify/functions"
+  # Los .json de precios se generan en el build (ver scripts/generar-datos-pago.mjs) y
+  # hay que forzar a que se empaqueten junto con las funciones que los leen.
+  included_files = ["netlify/functions/data/*.json"]
 
 [[headers]]
   for = "/*"

@@ -1,0 +1,75 @@
+---
+import Layout from '../layouts/Layout.astro';
+import WhatsAppBanner from '../components/WhatsAppBanner.astro';
+---
+
+<Layout title="Pago confirmado" description="Confirmación de pago — Inefable ALRO">
+  <section class="confirmado">
+    <div class="grain"></div>
+    <div class="container confirmado__content">
+      <p class="kicker reveal" data-estado-kicker>Procesando...</p>
+      <h1 class="reveal" data-estado-titulo>Un momento…</h1>
+      <p class="confirmado__sub reveal" data-estado-texto>Estamos confirmando tu pago.</p>
+
+      <div class="confirmado__whatsapp reveal">
+        <WhatsAppBanner
+          texto="Para coordinar los detalles de tu pedido, escríbenos:"
+          mensaje="¡Hola! Acabo de pagar en la página y quiero coordinar los detalles de mi pedido 🕯️"
+        />
+      </div>
+
+      <div class="confirmado__links reveal">
+        <a href="/tienda" class="btn btn-ghost">Volver al catálogo</a>
+        <a href="/curso" class="btn btn-ghost">Volver a talleres</a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function safe(fn: () => void, name: string) {
+      try { fn(); } catch (e) { console.warn('[' + name + ']', e); }
+    }
+
+    function initEstadoPago() {
+      const params = new URLSearchParams(window.location.search);
+      const tipo = params.get('tipo'); // 'taller' | 'producto'
+      const estado = params.get('collection_status') || params.get('status'); // 'approved' | 'pending' | ...
+
+      const kicker = document.querySelector('[data-estado-kicker]');
+      const titulo = document.querySelector('[data-estado-titulo]');
+      const texto = document.querySelector('[data-estado-texto]');
+      if (!kicker || !titulo || !texto) return;
+
+      const cosa = tipo === 'taller' ? 'tu cupo en el taller' : 'tu pedido';
+
+      if (estado === 'pending' || estado === 'in_process') {
+        kicker.textContent = 'Pago en proceso';
+        titulo.textContent = 'Estamos confirmando tu pago';
+        texto.textContent = `Tu pago está siendo revisado. Apenas se confirme, nos ponemos en contacto por WhatsApp para coordinar ${cosa}.`;
+      } else {
+        // Por defecto asumimos aprobado: Mercado Pago solo trae hasta acá con
+        // auto_return cuando el pago quedó aprobado (o cuando entra manual sin ese dato).
+        kicker.textContent = '¡Pago confirmado!';
+        titulo.textContent = 'Gracias por tu compra';
+        texto.textContent = `Ya recibimos tu pago. Ahora coordinamos por WhatsApp los detalles de ${cosa} — fecha, dirección o entrega, según corresponda.`;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => safe(initEstadoPago, 'initEstadoPago'));
+  </script>
+
+  <style>
+    .confirmado {
+      position: relative;
+      min-height: 70vh;
+      display: flex;
+      align-items: center;
+      background: var(--bg-2);
+      padding: 160px 0 80px;
+    }
+    .confirmado__content { max-width: 620px; }
+    .confirmado__sub { font-size: 1.05rem; margin-top: 16px; max-width: 480px; }
+    .confirmado__whatsapp { margin-top: 36px; max-width: 480px; }
+    .confirmado__links { margin-top: 28px; display: flex; gap: 14px; flex-wrap: wrap; }
+  </style>
+</Layout>

@@ -24,6 +24,20 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
 
 const productoOptionLabel = (p: (typeof productos)[number]) => p.data.nombre;
 
+// Mismos valores por defecto que netlify/functions/pago-producto.js — si se cambian
+// las variables de entorno en Netlify, hay que redesplegar para que el texto de acá
+// y el cobro real queden sincronizados. Confirmado por el usuario (2026-08-22): norte
+// de Bogotá gratis, resto de la ciudad $15.000, nacional se cotiza con la transportadora.
+const envioNorte = Number(import.meta.env.ENVIO_BOGOTA_NORTE_COP) || 0;
+const envioResto = Number(import.meta.env.ENVIO_BOGOTA_RESTO_COP) || 15000;
+
+// Datos livianos para que el script del formulario arme el selector de presentación
+// y sepa si el producto elegido tiene precio fijo (para poder pagar en línea) o es
+// "por cotización" (sigue el camino manual de siempre).
+const productosData = Object.fromEntries(
+  productos.map((p) => [p.data.nombre, { slug: p.slug, variantes: p.data.variantes }])
+);
+
 const productSchema = productos.map((p) => ({
   '@context': 'https://schema.org',
   '@type': 'Product',
@@ -54,7 +68,9 @@ const productSchema = productos.map((p) => ({
       <p class="kicker reveal">Cada vela cuenta una historia</p>
       <h1 class="reveal">Nuestro <em>catálogo</em></h1>
       <p class="tienda-hero__sub reveal">
-        Aún no tenemos pago en línea — completa el formulario o escríbenos por WhatsApp y coordinamos tu pedido directo.
+        Envío gratis al norte de Bogotá, {formatPrecio(envioResto)} COP al resto de la ciudad — paga en línea
+        al hacer tu pedido. A nivel nacional, completa el formulario o escríbenos por WhatsApp y coordinamos
+        el envío con la transportadora.
       </p>
     </div>
   </section>
@@ -103,8 +119,9 @@ const productSchema = productos.map((p) => ({
         <span class="kicker">Haz tu pedido</span>
         <h2>Cuéntanos qué te gustó y te contactamos por WhatsApp</h2>
         <p>
-          Completa el formulario con tus datos y el producto que te interesa. Te escribimos por WhatsApp para
-          confirmar disponibilidad, cantidades y coordinar el pago y la entrega.
+          Completa el formulario con tus datos y el producto que te interesa. Si entregamos en Bogotá, pagas
+          en línea de una vez (envío gratis al norte, {formatPrecio(envioResto)} COP al resto de la ciudad).
+          A nivel nacional, coordinamos el envío por WhatsApp.
         </p>
         <WhatsAppBanner texto="¿Prefieres escribirnos directo?" mensaje="¡Hola! Quiero hacer un pedido de Inefable ALRO 🕯️" />
       </div>
@@ -152,14 +169,30 @@ const productSchema = productos.map((p) => ({
         </label>
         <label>
           ¿Qué producto te interesa?
-          <select name="producto">
-            {productos.map((p) => <option>{productoOptionLabel(p)}</option>)}
+          <select name="producto" id="select-producto">
+            {productos.map((p) => <option data-slug={p.slug}>{productoOptionLabel(p)}</option>)}
             <option>Varios productos / no estoy segur@</option>
           </select>
         </label>
         <label>
-          Cantidad aproximada
-          <input type="text" name="cantidad" placeholder="Ej: 2 unidades" />
+          Presentación
+          <select name="presentacion" id="select-presentacion"></select>
+        </label>
+        <label>
+          Cantidad
+          <input type="number" name="cantidad" id="input-cantidad" min="1" max="20" value="1" inputmode="numeric" />
+        </label>
+        <label>
+          ¿Dónde te entregamos?
+          <select name="entrega" id="select-entrega">
+            <option value="bogota-norte">Norte de Bogotá — envío gratis, pago en línea</option>
+            <option value="bogota-resto">Resto de Bogotá — domicilio {formatPrecio(envioResto)} COP, pago en línea</option>
+            <option value="otra">Otra ciudad — coordinamos el envío con la transportadora por WhatsApp</option>
+          </select>
+        </label>
+        <label id="campo-direccion">
+          Dirección de entrega en Bogotá
+          <input type="text" name="direccion" id="input-direccion" placeholder="Calle, número, barrio" />
         </label>
 
         <label class="checkbox-field">
@@ -167,20 +200,70 @@ const productSchema = productos.map((p) => ({
           <span>He leído y acepto la <a href="/privacidad">política de privacidad</a>.</span>
         </label>
 
-        <button type="submit" class="btn btn-primary">Enviar pedido</button>
+        <button type="submit" class="btn btn-primary" data-submit-label="Enviar pedido">Enviar pedido</button>
         <p class="tienda-form__status" data-form-status role="status" aria-live="polite"></p>
       </form>
     </div>
   </section>
 
+  <script type="application/json" id="productos-data" set:html={JSON.stringify(productosData)} />
+
   <script>
+    interface Variante { presentacion: string; precio?: number; }
+    interface ProductoInfo { slug: string; variantes: Variante[]; }
+
     function safe(fn: () => void, name: string) {
       try { fn(); } catch (e) { console.warn('[' + name + ']', e); }
     }
 
+    function cargarProductosData(): Record<string, ProductoInfo> {
+      const el = document.getElementById('productos-data');
+      if (!el?.textContent) return {};
+      try {
+        return JSON.parse(el.textContent);
+      } catch {
+        return {};
+      }
+    }
+
+    const productosData = cargarProductosData();
+
+    function poblarPresentaciones(nombreProducto: string) {
+      const varianteSelect = document.getElementById('select-presentacion') as HTMLSelectElement | null;
+      if (!varianteSelect) return;
+
+      const info = productosData[nombreProducto];
+      varianteSelect.innerHTML = '';
+
+      if (!info || info.variantes.length === 0) {
+        varianteSelect.disabled = true;
+        return;
+      }
+
+      info.variantes.forEach((v) => {
+        const opt = document.createElement('option');
+        opt.value = v.presentacion;
+        opt.textContent =
+          v.precio !== undefined ? `${v.presentacion} — $${v.precio.toLocaleString('es-CO')} COP` : `${v.presentacion} (por cotización)`;
+        varianteSelect.appendChild(opt);
+      });
+      varianteSelect.disabled = false;
+    }
+
+    function actualizarVisibilidadDireccion() {
+      const entregaSelect = document.getElementById('select-entrega') as HTMLSelectElement | null;
+      const campoDireccion = document.getElementById('campo-direccion') as HTMLElement | null;
+      const inputDireccion = document.getElementById('input-direccion') as HTMLInputElement | null;
+      if (!entregaSelect || !campoDireccion || !inputDireccion) return;
+
+      const esBogota = entregaSelect.value.startsWith('bogota-');
+      campoDireccion.style.display = esBogota ? '' : 'none';
+      inputDireccion.required = esBogota;
+    }
+
     function initProductoCtas() {
       const form = document.getElementById('form-producto') as HTMLFormElement | null;
-      const select = form?.querySelector('select[name="producto"]') as HTMLSelectElement | null;
+      const select = document.getElementById('select-producto') as HTMLSelectElement | null;
       const nombreInput = form?.querySelector('input[name="nombre"]') as HTMLInputElement | null;
       const formSection = document.querySelector('.tienda-form') as HTMLElement | null;
       if (!form || !select) return;
@@ -189,7 +272,10 @@ const productSchema = productos.map((p) => ({
         btn.addEventListener('click', (e) => {
           e.preventDefault();
           const value = btn.getAttribute('data-producto-option');
-          if (value) select.value = value;
+          if (value) {
+            select.value = value;
+            poblarPresentaciones(value);
+          }
 
           // Scroll controlado en un solo paso (compensando el header fijo), en vez de
           // dejar que el salto de ancla y el focus del input se disparen por separado.
@@ -206,10 +292,24 @@ const productSchema = productos.map((p) => ({
       });
     }
 
+    function initSelectores() {
+      const productoSelect = document.getElementById('select-producto') as HTMLSelectElement | null;
+      const entregaSelect = document.getElementById('select-entrega') as HTMLSelectElement | null;
+      if (productoSelect) {
+        poblarPresentaciones(productoSelect.value);
+        productoSelect.addEventListener('change', () => poblarPresentaciones(productoSelect.value));
+      }
+      if (entregaSelect) {
+        actualizarVisibilidadDireccion();
+        entregaSelect.addEventListener('change', actualizarVisibilidadDireccion);
+      }
+    }
+
     function initTiendaForm() {
       const form = document.getElementById('form-producto') as HTMLFormElement | null;
       if (!form) return;
       const status = form.querySelector('[data-form-status]');
+      const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
 
       const whatsappInput = form.querySelector('input[name="whatsapp"]') as HTMLInputElement | null;
       if (whatsappInput) {
@@ -222,25 +322,78 @@ const productSchema = productos.map((p) => ({
         e.preventDefault();
         if (!form.reportValidity()) return;
 
+        const productoSelect = document.getElementById('select-producto') as HTMLSelectElement | null;
+        const varianteSelect = document.getElementById('select-presentacion') as HTMLSelectElement | null;
+        const entregaSelect = document.getElementById('select-entrega') as HTMLSelectElement | null;
+        const cantidadInput = document.getElementById('input-cantidad') as HTMLInputElement | null;
+        const productoSlug = productoSelect?.selectedOptions[0]?.dataset.slug;
+        const info = productoSelect ? productosData[productoSelect.value] : undefined;
+        const varianteInfo = info?.variantes.find((v) => v.presentacion === varianteSelect?.value);
+        const nombre = (form.querySelector('input[name="nombre"]') as HTMLInputElement | null)?.value || '';
+        const correo = (form.querySelector('input[name="correo"]') as HTMLInputElement | null)?.value || '';
+
+        const esBogota = entregaSelect?.value.startsWith('bogota-');
+        const zonaBogota = entregaSelect?.value === 'bogota-norte' ? 'norte' : 'resto';
+        const sePuedePagarEnLinea = esBogota && !!productoSlug && varianteInfo?.precio !== undefined;
+
         const data = new FormData(form);
         const body = new URLSearchParams(data as any).toString();
+        if (submitBtn) submitBtn.disabled = true;
 
+        // El registro en Brevo (contacto + correos, con la dirección incluida en el
+        // aviso interno) sigue el camino de siempre, vía Netlify Forms → producto-sync.js.
         fetch('/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body,
         })
           .then(() => {
-            if (status) status.textContent = '¡Listo! Te contactaremos muy pronto por WhatsApp para confirmar tu pedido.';
-            form.reset();
+            if (!sePuedePagarEnLinea) {
+              if (status) status.textContent = '¡Listo! Te contactaremos muy pronto por WhatsApp para confirmar tu pedido.';
+              if (submitBtn) submitBtn.disabled = false;
+              form.reset();
+              poblarPresentaciones(productoSelect?.value || '');
+              actualizarVisibilidadDireccion();
+              return;
+            }
+
+            if (status) status.textContent = 'Te estamos llevando a la página de pago…';
+
+            fetch('/.netlify/functions/pago-producto', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                productoSlug,
+                variantePresentacion: varianteSelect?.value,
+                cantidad: cantidadInput?.value,
+                nombre,
+                correo,
+                zonaBogota,
+              }),
+            })
+              .then((res) => (res.ok ? res.json() : Promise.reject(new Error('pago-producto no disponible'))))
+              .then(({ checkoutUrl }) => {
+                window.location.href = checkoutUrl;
+              })
+              .catch(() => {
+                // El pago en línea todavía no está activo (o falló) — el pedido ya
+                // quedó guardado arriba, seguimos por WhatsApp como siempre.
+                if (status) status.textContent = '¡Listo! Te contactaremos muy pronto por WhatsApp para confirmar tu pedido y el pago.';
+                if (submitBtn) submitBtn.disabled = false;
+                form.reset();
+                poblarPresentaciones(productoSelect?.value || '');
+                actualizarVisibilidadDireccion();
+              });
           })
           .catch(() => {
             if (status) status.textContent = 'Hubo un problema al enviar. Escríbenos directo por WhatsApp, por favor.';
+            if (submitBtn) submitBtn.disabled = false;
           });
       });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      safe(initSelectores, 'initSelectores');
       safe(initTiendaForm, 'initTiendaForm');
       safe(initProductoCtas, 'initProductoCtas');
     });

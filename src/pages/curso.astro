@@ -118,8 +118,8 @@ const metaDescripcion =
         <span class="kicker">Reserva tu cupo</span>
         <h2>Cuéntanos y te contactamos por WhatsApp</h2>
         <p>
-          Completa el formulario con tus datos. Te escribiremos por WhatsApp para confirmar
-          disponibilidad de fecha y turno, y compartirte el link de pago para asegurar tu cupo.
+          Completa el formulario y te llevamos directo a la página de pago para asegurar tu cupo.
+          Cualquier detalle de turno u horario lo coordinamos después por WhatsApp.
         </p>
         <WhatsAppBanner texto="¿Tienes dudas antes de inscribirte?" mensaje="¡Hola! Tengo una pregunta antes de inscribirme al Taller de Velas 🕯️" />
       </div>
@@ -168,7 +168,7 @@ const metaDescripcion =
         <label>
           ¿A cuál taller te gustaría asistir?
           <select name="fecha">
-            {talleres.map((t) => <option>{tallerOptionLabel(t)}</option>)}
+            {talleres.map((t) => <option data-slug={t.slug}>{tallerOptionLabel(t)}</option>)}
             <option>Aún no estoy segur@ / quiero más info</option>
           </select>
         </label>
@@ -228,20 +228,55 @@ const metaDescripcion =
         e.preventDefault();
         if (!form.reportValidity()) return;
 
+        const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+        const fechaSelect = form.querySelector('select[name="fecha"]') as HTMLSelectElement | null;
+        const tallerSlug = fechaSelect?.selectedOptions[0]?.dataset.slug;
+        const nombre = (form.querySelector('input[name="nombre"]') as HTMLInputElement | null)?.value || '';
+        const correo = (form.querySelector('input[name="correo"]') as HTMLInputElement | null)?.value || '';
+
         const data = new FormData(form);
         const body = new URLSearchParams(data as any).toString();
+        if (submitBtn) submitBtn.disabled = true;
 
+        // El registro en Brevo (contacto + correos) sigue el camino de siempre, vía
+        // Netlify Forms → brevo-sync.js. Esto no cambia aunque el pago falle o todavía
+        // no esté configurado.
         fetch('/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body,
         })
           .then(() => {
-            if (status) status.textContent = '¡Listo! Te contactaremos muy pronto por WhatsApp para confirmar tu cupo.';
-            form.reset();
+            if (!tallerSlug) {
+              // "Aún no estoy segur@" — no hay un taller/precio fijo que cobrar.
+              if (status) status.textContent = '¡Listo! Te contactaremos muy pronto por WhatsApp para confirmar tu cupo.';
+              if (submitBtn) submitBtn.disabled = false;
+              form.reset();
+              return;
+            }
+
+            if (status) status.textContent = 'Te estamos llevando a la página de pago…';
+
+            fetch('/.netlify/functions/pago-taller', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tallerSlug, nombre, correo }),
+            })
+              .then((res) => (res.ok ? res.json() : Promise.reject(new Error('pago-taller no disponible'))))
+              .then(({ checkoutUrl }) => {
+                window.location.href = checkoutUrl;
+              })
+              .catch(() => {
+                // El pago en línea todavía no está activo (o falló) — no bloquea la
+                // pre-inscripción, que ya quedó guardada arriba.
+                if (status) status.textContent = '¡Listo! Te contactaremos muy pronto por WhatsApp para confirmar tu cupo y el pago.';
+                if (submitBtn) submitBtn.disabled = false;
+                form.reset();
+              });
           })
           .catch(() => {
             if (status) status.textContent = 'Hubo un problema al enviar. Escríbenos directo por WhatsApp, por favor.';
+            if (submitBtn) submitBtn.disabled = false;
           });
       });
     }
