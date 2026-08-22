@@ -1,13 +1,16 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crearPreferencia, siteUrl } from './lib/mercadopago.js';
 
 // Se lee con fs en vez de "import ... with { type: 'json' }" para no depender de una
-// versión de Node tan nueva como la que necesita esa sintaxis (Netlify podría estar
-// corriendo una más vieja).
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const talleres = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'talleres.json'), 'utf8'));
+// versión de Node tan nueva como la que necesita esa sintaxis.
+// Ojo: NO declarar un `__dirname` propio — el bundler de Netlify (esbuild) ya inyecta
+// uno al empaquetar, y redeclararlo tumba la función entera con
+// "SyntaxError: Identifier '__dirname' has already been declared" (pasó en producción
+// el 2026-08-22). Con `new URL(..., import.meta.url)` se evita el conflicto.
+const talleres = JSON.parse(
+  fs.readFileSync(fileURLToPath(new URL('./data/talleres.json', import.meta.url)), 'utf8')
+);
 
 // Esta función SOLO arma el link de pago — el registro del contacto en Brevo y los
 // correos de confirmación los sigue haciendo brevo-sync.js (el formulario le pega a
