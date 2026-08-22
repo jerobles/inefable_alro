@@ -41,3 +41,36 @@ collections:
       - { label: "Lugar", name: "lugar", widget: "string", default: "Calle 155 #14-80, Bogotá" }
       - { label: "Activo (se muestra en la página)", name: "activo", widget: "boolean", default: true, hint: "Desactívalo para ocultar un taller sin borrarlo" }
       - { label: "Notas internas (opcional, no se publica)", name: "body", widget: "markdown", required: false }
+
+  - name: "productos"
+    label: "Catálogo"
+    folder: "src/content/productos"
+    create: true
+    slug: "{{slug}}"
+    extension: "md"
+    summary: "{{categoria}} — {{nombre}}"
+    fields:
+      - { label: "Nombre del producto", name: "nombre", widget: "string" }
+      - label: "Categoría"
+        name: "categoria"
+        widget: "select"
+        options:
+          - { label: "Velas aromáticas", value: "velas-aromaticas" }
+          - { label: "Bebidas frías", value: "bebidas-frias" }
+          - { label: "Postres", value: "postres" }
+          - { label: "Velas de intención", value: "velas-intencion" }
+          - { label: "Varios", value: "varios" }
+          - { label: "Recordatorios", value: "recordatorios" }
+      - { label: "Descripción", name: "descripcion", widget: "text" }
+      - { label: "Notas olfativas", name: "notasOlfativas", widget: "text", required: false }
+      - { label: "Detalles técnicos", name: "detallesTecnicos", widget: "text", required: false }
+      - { label: "Modo de uso / Cuidados", name: "modoDeUso", widget: "text", required: false }
+      - label: "Precios (una fila por presentación/tamaño)"
+        name: "variantes"
+        widget: "list"
+        fields:
+          - { label: "Presentación", name: "presentacion", widget: "string", hint: "Ej: '220 ml', 'Ramo de 5 flores', 'Por cotización'" }
+          - { label: "Precio (COP, solo el número, vacío si es 'por cotización')", name: "precio", widget: "number", value_type: "int", required: false }
+      - { label: "Foto", name: "imagen", widget: "image", required: false, media_folder: "/public/images/productos", public_folder: "/images/productos" }
+      - { label: "Destacado en el inicio", name: "destacado", widget: "boolean", default: false, hint: "Máximo unos pocos activados a la vez, se muestran en la home" }
+      - { label: "Disponible (se muestra en /tienda)", name: "disponible", widget: "boolean", default: true, hint: "Desactívalo para ocultar sin borrar" }

@@ -27,4 +27,27 @@ const talleres = defineCollection({
   }),
 });
 
-export const collections = { blog, talleres };
+const productos = defineCollection({
+  type: 'content',
+  schema: z.object({
+    nombre: z.string(),
+    categoria: z.string(),
+    descripcion: z.string(),
+    notasOlfativas: z.string().optional(),
+    detallesTecnicos: z.string().optional(),
+    modoDeUso: z.string().optional(),
+    variantes: z
+      .array(
+        z.object({
+          presentacion: z.string(),
+          precio: z.number().optional(),
+        })
+      )
+      .min(1),
+    imagen: z.string().optional(),
+    destacado: z.boolean().optional().default(false),
+    disponible: z.boolean().optional().default(true),
+  }),
+});
+
+export const collections = { blog, talleres, productos };
