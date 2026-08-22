@@ -53,9 +53,11 @@ astro.config.mjs             ← incluye integración @astrojs/sitemap (fijar en
 
 ## Datos reales de la marca (no inventar otros)
 
-- WhatsApp: +57 320 807 6828 → usado en `WhatsAppButton.astro` y en footer/curso
+- WhatsApp: +57 302 110 1969 → usado en `WhatsAppButton.astro`, footer, curso, privacidad, términos (cambió desde +57 320 807 6828, actualizado 2026-08-21)
 - Instagram: instagram.com/inefable.alro
-- Taller de Velas: 25 jul y 1 ago 2026, $180.000 COP, turnos 9am-1pm y 2pm-6pm, Calle 155 #14-80 (Bogotá)
+- Talleres (agosto 2026, Calle 155 #14-80, Bogotá) — ojo: van a seguir cambiando mes a mes, verificar con el usuario antes de asumir que siguen vigentes:
+  - 22 ago: Taller de Creación de Velas de Postre, $100.000 COP, 2h, horario a confirmar por WhatsApp
+  - 29 ago: Taller de Velas (el genérico de siempre), $180.000 COP, turnos 9am-1pm y 2pm-6pm
 - Logo: badge circular "Inefable ALRO — Ilumina tu espacio / Hecho a mano — Est. 2026"
 
 ## Estado actual (actualizado 2026-07-05)
@@ -71,11 +73,21 @@ Proyecto compila sin errores (`npm run build`) y **ya está desplegado y en vivo
 
 ## Pendiente / próximos pasos
 
+0. **En curso (2026-08-21): rediseño de talleres**, por módulos, aprobando cada uno con el usuario antes de seguir:
+   - Módulo 1 ✅ hecho — datos reales corregidos (WhatsApp, talleres de agosto)
+   - Módulo 2 — colección "Talleres" en Decap CMS para que el usuario los administre desde `/admin` sin código
+   - Módulo 3 — el selector de taller del formulario se llena solo desde esa colección; Brevo guarda a qué taller se inscribió cada contacto (atributo `TALLER`, no una lista aparte por taller — así no hay que crear una lista nueva en Brevo cada vez)
+   - Módulo 4 — formulario de newsletter (nombre + correo) con su propia lista en Brevo
+   - Módulo 5 — banner visual de WhatsApp + efecto hover en las tarjetas de taller
 1. Comprar y conectar el dominio `inefable.alro` en Netlify (dominio en sí no es gratis, ~$12-15 USD/año; conectarlo a Netlify sí lo es)
 2. Configurar Google Analytics (pendiente hasta tener el dominio final, GA lo pide en su configuración)
 3. Widget de Instagram en la home (esperando que el usuario conecte su cuenta en snapwidget.com y pase el código embed)
 4. Seguir ajustes de diseño puntuales (el usuario los va revisando y pidiendo de a poco)
 5. Fase futura (no ahora): pago Wompi para el curso, tienda de productos, suscripciones — la arquitectura ya lo permite sin romper nada existente
+
+## Flujo de deploy (importante, desde 2026-08-21)
+
+El usuario pidió limitar los deploys para no gastar minutos de build de Netlify. **No hacer `git push` después de cada cambio** — hacer commits locales normalmente, probar en el servidor local, y solo subir (`git push`) cuando el usuario lo pida explícitamente ("publica esto", "sube los cambios"). Excepción: publicar posts del blog desde `/admin` sí sube directo a producción vía Git Gateway, eso es independiente y está bien que pase.
 
 ## Comandos útiles
 
