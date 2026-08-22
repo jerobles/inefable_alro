@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import WhatsAppBanner from '../components/WhatsAppBanner.astro';
 import { getCollection } from 'astro:content';
 
 const allTalleres = await getCollection('talleres');
@@ -120,9 +121,7 @@ const metaDescripcion =
           Completa el formulario con tus datos. Te escribiremos por WhatsApp para confirmar
           disponibilidad de fecha y turno, y compartirte el link de pago para asegurar tu cupo.
         </p>
-        <p class="curso-form__alt">
-          ¿Prefieres escribirnos directo? <a href="https://wa.me/573021101969" target="_blank" rel="noopener">Reserva por WhatsApp →</a>
-        </p>
+        <WhatsAppBanner texto="¿Prefieres reservar directo?" mensaje="¡Hola! Quiero reservar mi cupo en el Taller de Velas 🕯️" />
       </div>
 
       <form
@@ -269,6 +268,12 @@ const metaDescripcion =
       border-radius: var(--radius);
       display: flex;
       flex-direction: column;
+      transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+    .taller-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--accent);
+      box-shadow: 0 16px 32px rgba(32,26,18,0.12);
     }
     .taller-card__badge {
       align-self: flex-start;
@@ -300,7 +305,6 @@ const metaDescripcion =
       gap: 64px;
     }
     .curso-form__intro p { max-width: 400px; }
-    .curso-form__alt a { color: var(--accent); }
 
     .curso-form__form {
       display: flex;

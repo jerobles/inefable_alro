@@ -1,0 +1,81 @@
+---
+interface Props {
+  texto?: string;
+  mensaje?: string;
+}
+
+const {
+  texto = '¿Prefieres hablar directo?',
+  mensaje = '¡Hola! Vi su página y quiero saber más sobre Inefable ALRO 🕯️',
+} = Astro.props;
+
+const numero = '573021101969';
+const numeroVisible = '+57 302 110 1969';
+const href = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
+---
+
+<a href={href} target="_blank" rel="noopener" class="wa-banner">
+  <span class="wa-banner__icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
+      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.39 1.26 4.81L2 22l5.42-1.35a9.9 9.9 0 0 0 4.62 1.15h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2Zm5.8 14.08c-.24.68-1.4 1.3-1.94 1.36-.5.06-1.02.26-3.4-.71-2.87-1.18-4.71-4.05-4.86-4.24-.14-.19-1.16-1.55-1.16-2.95 0-1.4.73-2.09.99-2.37.26-.29.57-.36.76-.36.19 0 .38 0 .55.01.18.01.42-.07.65.5.24.58.82 2 .89 2.15.07.15.12.32.02.51-.1.19-.15.31-.3.48-.14.17-.31.37-.44.5-.15.15-.3.31-.13.6.17.29.76 1.25 1.63 2.02 1.12.99 2.06 1.3 2.35 1.45.29.14.46.12.63-.07.17-.19.72-.84.92-1.13.19-.29.38-.24.63-.14.26.09 1.65.78 1.94.92.28.14.47.21.53.33.07.12.07.68-.17 1.36Z"/>
+    </svg>
+  </span>
+  <span class="wa-banner__text">
+    <span class="wa-banner__kicker">{texto}</span>
+    <span class="wa-banner__numero">{numeroVisible}</span>
+  </span>
+  <span class="wa-banner__cta">Escríbenos →</span>
+</a>
+
+<style>
+  .wa-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    transition: transform .2s ease, border-color .2s ease;
+  }
+  .wa-banner:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+  }
+  .wa-banner__icon {
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #25d366;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .wa-banner__text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+  .wa-banner__kicker {
+    font-size: 0.78rem;
+    color: var(--cream-3);
+  }
+  .wa-banner__numero {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: var(--cream);
+  }
+  .wa-banner__cta {
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  @media (max-width: 480px) {
+    .wa-banner__cta { display: none; }
+  }
+</style>
