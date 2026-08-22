@@ -34,19 +34,23 @@ Arquetipo "Editorial Dark Warm" adaptado a velas:
 src/
   layouts/Layout.astro       ← head (SEO, canonical, JSON-LD Organization), header, footer, whatsapp button, script de reveals
   components/                ← Header.astro, Footer.astro, WhatsAppButton.astro
-  content/blog/*.md           ← posts del blog (frontmatter: title, description, date, image, draft)
+  content/
+    config.ts                  ← schemas de las colecciones (blog, talleres)
+    blog/*.md                    ← posts del blog (frontmatter: title, description, date, image, draft)
+    talleres/*.md                 ← talleres (frontmatter: titulo, fecha, precio, notaPrecio, duracion, horario, descripcion, incluye, lugar, activo) — editable desde /admin
   pages/
-    index.astro                ← inicio (hero = banner-principal.webp)
-    curso.astro                 ← taller + formulario (Netlify Forms) + JSON-LD Event (2 fechas)
+    index.astro                ← inicio (hero = banner-principal.webp, video del taller en loop)
+    curso.astro                 ← lee la colección "talleres" (getCollection): tarjetas + form + JSON-LD, todo dinámico
     blog/index.astro            ← listado
     blog/[...slug].astro        ← post individual
     privacidad.astro
     terminos.astro
 netlify/
-  functions/brevo-sync.js     ← recibe el webhook de Netlify Forms y crea/actualiza el contacto en Brevo
+  functions/brevo-sync.js     ← recibe el webhook de Netlify Forms, crea/actualiza el contacto en Brevo, y manda los 2 correos (confirmación al lead + notificación interna)
 public/
-  images/                     ← fotos reales de producto, banner-principal.webp (hero), logo.png (favicon/OG), logo-badge.svg (header/footer, recoloreado cream/cream-3 para fondo oscuro)
-  admin/                      ← index.html + config.yml (Decap CMS)
+  images/                     ← fotos reales de producto, banner-principal.webp (hero), curso-experiencia-poster.jpg (poster del video), logo.png (favicon/OG), logo-badge.svg (header/footer, recoloreado cream/cream-3, disco crema detrás)
+  videos/curso-experiencia.mp4 ← loop del taller en la home (10s, 552KB, comprimido con ffmpeg)
+  admin/                      ← index.html + config.yml (Decap CMS: colecciones "blog" y "talleres")
 netlify.toml                 ← incluye [functions] directory para brevo-sync
 astro.config.mjs             ← incluye integración @astrojs/sitemap (fijar en v3.2.1, versiones más nuevas rompen con Astro 4)
 ```
@@ -75,14 +79,13 @@ Proyecto compila sin errores (`npm run build`) y **ya está desplegado y en vivo
 
 0. **En curso (2026-08-21): rediseño de talleres**, por módulos, aprobando cada uno con el usuario antes de seguir:
    - Módulo 1 ✅ hecho — datos reales corregidos (WhatsApp, talleres de agosto), botón "Reservar este taller" por tarjeta
-   - Módulo 1.5 ✅ código hecho, **falta activar en Netlify (env vars)** — `brevo-sync.js` manda 2 correos por Brevo (transactional email, misma API key): confirmación al lead + notificación a la empresa con botón "Escríbele por WhatsApp" directo al número del lead. El remitente está separado en dos para no bloquear todo por el correo corporativo:
-     - `BREVO_SENDER_EMAIL_INTERNO` — remitente del correo interno (con el botón de WhatsApp). Puede ser el correo **personal** del usuario, porque ese correo nadie externo lo ve. Falta: 1) el usuario lo verifica como remitente en Brevo (Senders & IP), 2) yo agrego la variable en Netlify. Con eso ya queda activo.
-     - `BREVO_SENDER_EMAIL` — remitente del correo de confirmación AL CLIENTE. Este sí debe ser un correo "empresarial" (el usuario no quiere usar el personal aquí) — pendiente de que se lo pasen. Mientras no esté, ese correo específico se omite en silencio (no rompe nada).
-     - `BUSINESS_NOTIFY_EMAIL` — a qué correo(s) llega la notificación interna. Acepta varios separados por coma ("a@x.com, b@y.com").
-     - Opcionales, no bloqueantes: `BREVO_SENDER_NAME`, `BREVO_SENDER_NAME_INTERNO` (por defecto "Inefable ALRO")
-     - Importante: `formresponses@netlify.com` es el remitente FIJO de la notificación nativa de Netlify Forms (la que ya funciona hoy) — esa NO se puede personalizar ni ponerle botones, por eso se armó el correo aparte por Brevo.
-   - Módulo 2 — colección "Talleres" en Decap CMS para que el usuario los administre desde `/admin` sin código
-   - Módulo 3 — el selector de taller del formulario se llena solo desde esa colección; Brevo guarda a qué taller se inscribió cada contacto (atributo `TALLER`, no una lista aparte por taller — así no hay que crear una lista nueva en Brevo cada vez)
+   - Módulo 1.5 ✅ **activo y confirmado en producción** — `brevo-sync.js` manda 2 correos por Brevo (transactional email, misma API key): confirmación al lead + notificación a la empresa con botón "Escríbele por WhatsApp" directo al número del lead. Remitente separado en dos para no bloquear todo por el correo corporativo:
+     - `BREVO_SENDER_EMAIL_INTERNO` = `jerobles08@gmail.com` (verificado en Brevo, funcionando — el usuario confirmó que le llegó el correo de prueba con el botón). Nota: Brevo avisa que un Gmail gratuito no cumple los requisitos ideales de DKIM/DMARC — no es problema para un correo interno (a lo sumo cae en Spam la primera vez, se soluciona marcándolo "No es spam").
+     - `BREVO_SENDER_EMAIL` — remitente del correo de confirmación AL CLIENTE. Debe ser un correo "empresarial" (el usuario no quiere usar el personal aquí) — sigue pendiente de que se lo pasen. Mientras no esté, ese correo específico se omite en silencio (no rompe nada).
+     - `BUSINESS_NOTIFY_EMAIL` = `jerobles08@gmail.com` (acepta varios separados por coma si hace falta sumar destinatarios)
+     - Importante: `formresponses@netlify.com` es el remitente FIJO de la notificación nativa de Netlify Forms (la que ya funciona, en paralelo) — esa NO se puede personalizar ni ponerle botones, por eso se armó el correo aparte por Brevo.
+   - Módulo 2 ✅ hecho — colección "Talleres" en Decap CMS (`src/content/talleres/*.md`, schema en `src/content/config.ts`). El usuario agrega/edita/oculta talleres desde `/admin` sin tocar código. Campos: titulo, fecha, precio, notaPrecio, duracion, horario, descripcion, incluye (lista), lugar, activo (boolean para ocultar sin borrar).
+   - Módulo 3 ✅ hecho — `/curso` lee la colección de talleres: filtra los inactivos y los que ya pasaron de fecha, ordena, y genera tarjetas + JSON-LD + opciones del selector del formulario dinámicamente. Brevo guarda a qué taller se inscribió cada contacto en el atributo `TALLER` (texto libre, no una lista aparte por taller — así no hay que crear una lista nueva en Brevo cada vez que se agrega un taller). Si no hay talleres activos/futuros, la página muestra un estado vacío con CTA a WhatsApp en vez de quedar rota.
    - Módulo 4 — formulario de newsletter (nombre + correo) con su propia lista en Brevo
    - Módulo 5 ⚠️ ajustado — banner visual de WhatsApp + efecto hover en las tarjetas de taller. El logo y el flyer de la home (parte de este módulo) **ya se hicieron antes de tiempo**, a pedido del usuario:
      - `logo-badge.svg` ahora lleva un disco crema (`var(--cream)`) detrás en vez de quedar transparente sobre el fondo oscuro (casi no se veía), y es más grande (56px header, 64px footer)
