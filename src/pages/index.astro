@@ -123,10 +123,41 @@ import Layout from '../layouts/Layout.astro';
         <a href="/curso" class="btn btn-primary">Ver fechas y reservar</a>
       </div>
       <div class="taller__img reveal">
-        <img src="/images/logo-tela.jpg" alt="Sello Inefable ALRO estampado sobre tela de lino" width="1080" height="1350" />
+        <video
+          id="taller-video"
+          poster="/images/curso-experiencia-poster.jpg"
+          width="480"
+          height="854"
+          muted
+          loop
+          playsinline
+          preload="metadata"
+          aria-label="Así se vive el Taller de Velas de Inefable ALRO"
+        >
+          <source src="/videos/curso-experiencia.mp4" type="video/mp4" />
+        </video>
       </div>
     </div>
   </section>
+
+  <script>
+    function safe(fn: () => void, name: string) {
+      try { fn(); } catch (e) { console.warn('[' + name + ']', e); }
+    }
+
+    function initTallerVideo() {
+      const video = document.getElementById('taller-video') as HTMLVideoElement | null;
+      if (!video) return;
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!prefersReducedMotion) {
+        video.play().catch(() => {
+          // Autoplay bloqueado por el navegador: se queda en el poster, sin problema.
+        });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => safe(initTallerVideo, 'initTallerVideo'));
+  </script>
 
 </Layout>
 
@@ -240,7 +271,7 @@ import Layout from '../layouts/Layout.astro';
     align-items: center;
   }
   .taller__text p { max-width: 420px; margin: 18px 0 28px; }
-  .taller__img img { border-radius: 4px; border: 1px solid var(--line); }
+  .taller__img img, .taller__img video { border-radius: 4px; border: 1px solid var(--line); width: 100%; height: auto; display: block; }
 
   @media (max-width: 900px) {
     .historia__grid { grid-template-columns: 1fr; }
