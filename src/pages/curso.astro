@@ -1,12 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
 
-const baseEvent = {
+const commonEvent = {
   '@context': 'https://schema.org',
   '@type': 'Event',
-  name: 'Taller de Velas — Inefable ALRO',
-  description:
-    'Aprende a crear tu propia vela artesanal en un ambiente cálido y personalizado. Incluye materiales, snacks y kit de trabajo para llevar a casa.',
   eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
   eventStatus: 'https://schema.org/EventScheduled',
   image: [new URL('/images/curso-flyer.webp', Astro.site).href],
@@ -25,22 +22,42 @@ const baseEvent = {
     name: 'Inefable ALRO',
     url: Astro.site?.href,
   },
-  offers: {
-    '@type': 'Offer',
-    price: '180000',
-    priceCurrency: 'COP',
-    availability: 'https://schema.org/InStock',
-    url: new URL('/curso', Astro.site).href,
-  },
 };
 
 const eventsSchema = [
-  { ...baseEvent, startDate: '2026-07-25T09:00:00-05:00', endDate: '2026-07-25T18:00:00-05:00' },
-  { ...baseEvent, startDate: '2026-08-01T09:00:00-05:00', endDate: '2026-08-01T18:00:00-05:00' },
+  {
+    ...commonEvent,
+    name: 'Taller de Creación de Velas de Postre — Inefable ALRO',
+    description:
+      'Aprende el paso a paso para crear una vela hiperrealista tipo postre en 2 horas, con guía personalizada y estación de café. Te llevas tu propia vela terminada y personalizada.',
+    startDate: '2026-08-22',
+    offers: {
+      '@type': 'Offer',
+      price: '100000',
+      priceCurrency: 'COP',
+      availability: 'https://schema.org/InStock',
+      url: new URL('/curso', Astro.site).href,
+    },
+  },
+  {
+    ...commonEvent,
+    name: 'Taller de Velas — Inefable ALRO',
+    description:
+      'Aprende a crear tu propia vela artesanal en un ambiente cálido y personalizado. Incluye materiales, snacks y kit de trabajo para llevar a casa.',
+    startDate: '2026-08-29T09:00:00-05:00',
+    endDate: '2026-08-29T18:00:00-05:00',
+    offers: {
+      '@type': 'Offer',
+      price: '180000',
+      priceCurrency: 'COP',
+      availability: 'https://schema.org/InStock',
+      url: new URL('/curso', Astro.site).href,
+    },
+  },
 ];
 ---
 
-<Layout title="Taller de velas" description="Reserva tu cupo en el Taller de Velas de Inefable ALRO. 25 de julio y 1 de agosto. Un espacio para tu creatividad y tus sentidos.">
+<Layout title="Talleres de velas" description="Reserva tu cupo en nuestros próximos talleres: Velas de Postre (22 de agosto) y Taller de Velas (29 de agosto). Un espacio para tu creatividad y tus sentidos.">
 
   <script type="application/ld+json" set:html={JSON.stringify(eventsSchema)} />
 
@@ -57,38 +74,49 @@ const eventsSchema = [
   </section>
 
   <section class="curso-info section-light">
-    <div class="container curso-info__grid">
-      <div class="curso-info__card reveal">
-        <span class="kicker">Fechas</span>
-        <h3>25 de julio &amp; 1 de agosto</h3>
-        <p>Dos fechas disponibles, dos turnos cada día.</p>
-      </div>
-      <div class="curso-info__card reveal">
-        <span class="kicker">Horarios</span>
-        <h3>9:00 a. m. – 1:00 p. m.</h3>
-        <h3>2:00 p. m. – 6:00 p. m.</h3>
-      </div>
-      <div class="curso-info__card reveal">
-        <span class="kicker">Lugar</span>
-        <h3>Calle 155 #14-80</h3>
-        <p>Bogotá, Colombia.</p>
-      </div>
-      <div class="curso-info__card reveal">
-        <span class="kicker">Valor</span>
-        <h3>$180.000 COP</h3>
-        <p>Descuentos disponibles para grupos.</p>
-      </div>
+    <div class="container curso-talleres__grid">
+      <article class="taller-card reveal">
+        <span class="taller-card__badge">22 de agosto</span>
+        <h2>Taller de Creación de Velas de Postre</h2>
+        <p class="taller-card__desc">
+          Aprende el paso a paso para crear una vela hiperrealista y deliciosa a la vista, mientras
+          disfrutas de una buena charla y nuestra estación de café. No necesitas experiencia previa.
+        </p>
+        <ul class="taller-card__incluye">
+          <li>Todos los materiales necesarios</li>
+          <li>Guía personalizada</li>
+          <li>Estación de café</li>
+          <li>Tu vela de postre terminada, personalizada a tu gusto</li>
+        </ul>
+        <div class="taller-card__meta">
+          <p><strong>Duración:</strong> 2 horas</p>
+          <p><strong>Lugar:</strong> Calle 155 #14-80, Bogotá</p>
+          <p><strong>Horario:</strong> escríbenos por WhatsApp para confirmar disponibilidad</p>
+        </div>
+        <div class="taller-card__price">$100.000 <small>COP · todo incluido</small></div>
+      </article>
+
+      <article class="taller-card reveal">
+        <span class="taller-card__badge">29 de agosto</span>
+        <h2>Taller de Velas</h2>
+        <p class="taller-card__desc">
+          Aprende a crear tu propia vela artesanal en un ambiente cálido y personalizado.
+          Cupos limitados para garantizar una experiencia única.
+        </p>
+        <ul class="taller-card__incluye">
+          <li>Materiales para crear tu propia vela</li>
+          <li>Snacks y café durante la sesión</li>
+          <li>Kit de trabajo para llevar a casa</li>
+        </ul>
+        <div class="taller-card__meta">
+          <p><strong>Turnos:</strong> 9:00 a. m.–1:00 p. m. y 2:00 p. m.–6:00 p. m.</p>
+          <p><strong>Lugar:</strong> Calle 155 #14-80, Bogotá</p>
+        </div>
+        <div class="taller-card__price">$180.000 <small>COP · descuentos para grupos</small></div>
+      </article>
     </div>
 
-    <div class="container curso-incluye reveal">
-      <h2>El valor incluye</h2>
-      <ul>
-        <li>Materiales para crear tu propia vela</li>
-        <li>Snacks y café durante la sesión</li>
-        <li>Kit de trabajo para llevar a casa</li>
-      </ul>
-      <p class="curso-incluye__nota">Los cupos son limitados para garantizar una experiencia personalizada.</p>
-    </div>
+    <p class="curso-talleres__nota container reveal">Los cupos son limitados para garantizar una experiencia personalizada.</p>
   </section>
 
   <section class="curso-form">
@@ -101,7 +129,7 @@ const eventsSchema = [
           disponibilidad de fecha y turno, y compartirte el link de pago para asegurar tu cupo.
         </p>
         <p class="curso-form__alt">
-          ¿Prefieres escribirnos directo? <a href="https://wa.me/573208076828" target="_blank" rel="noopener">Reserva por WhatsApp →</a>
+          ¿Prefieres escribirnos directo? <a href="https://wa.me/573021101969" target="_blank" rel="noopener">Reserva por WhatsApp →</a>
         </p>
       </div>
 
@@ -147,19 +175,19 @@ const eventsSchema = [
           />
         </label>
         <label>
-          Fecha de tu preferencia
+          ¿A cuál taller te gustaría asistir?
           <select name="fecha">
-            <option>25 de julio</option>
-            <option>1 de agosto</option>
-            <option>Cualquiera de las dos</option>
+            <option>22 de agosto — Velas de Postre</option>
+            <option>29 de agosto — Taller de Velas</option>
+            <option>Aún no estoy segur@ / quiero más info</option>
           </select>
         </label>
         <label>
-          Turno de tu preferencia
+          Turno de tu preferencia (solo aplica al Taller de Velas del 29)
           <select name="turno">
             <option>9:00 a. m. – 1:00 p. m.</option>
             <option>2:00 p. m. – 6:00 p. m.</option>
-            <option>Cualquiera de los dos</option>
+            <option>No aplica / me escriben para confirmar horario</option>
           </select>
         </label>
 
@@ -220,24 +248,39 @@ const eventsSchema = [
     .curso-hero { position: relative; padding: 180px 0 80px; background: var(--bg-2); }
     .curso-hero__sub { max-width: 520px; margin-top: 18px; font-size: 1.05rem; }
 
-    .curso-info__grid {
+    .curso-talleres__grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 24px;
-      margin-bottom: 64px;
     }
-    .curso-info__card {
+    .taller-card {
       background: #fff;
       border: 1px solid rgba(32,26,18,0.1);
-      padding: 26px 22px;
+      padding: 28px 26px;
       border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
     }
-    .curso-info__card h3 { font-size: 1.15rem; margin: 8px 0 4px; }
-    .curso-info__card p { font-size: 0.85rem; margin: 0; }
-
-    .curso-incluye ul { padding-left: 20px; }
-    .curso-incluye li { margin-bottom: 6px; }
-    .curso-incluye__nota { font-style: italic; color: #6b5d47; margin-top: 16px; }
+    .taller-card__badge {
+      align-self: flex-start;
+      background: var(--paper);
+      color: var(--accent);
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    .taller-card h2 { font-size: 1.3rem; margin: 0 0 10px; }
+    .taller-card__desc { font-size: 0.9rem; color: #6b5d47; margin: 0 0 16px; }
+    .taller-card__incluye { padding-left: 20px; margin: 0 0 18px; font-size: 0.88rem; }
+    .taller-card__incluye li { margin-bottom: 5px; }
+    .taller-card__meta { font-size: 0.82rem; color: #6b5d47; margin-bottom: 18px; }
+    .taller-card__meta p { margin: 0 0 4px; }
+    .taller-card__price { margin-top: auto; font-family: var(--font-display); font-size: 1.4rem; color: var(--ink); }
+    .taller-card__price small { font-family: var(--font-body); font-size: 0.75rem; color: #6b5d47; font-weight: 400; }
+    .curso-talleres__nota { font-style: italic; color: #6b5d47; margin-top: 28px; text-align: center; }
 
     .curso-form__grid {
       display: grid;
@@ -302,11 +345,8 @@ const eventsSchema = [
     .hidden-field { position: absolute; left: -9999px; }
 
     @media (max-width: 900px) {
-      .curso-info__grid { grid-template-columns: 1fr 1fr; }
+      .curso-talleres__grid { grid-template-columns: 1fr; }
       .curso-form__grid { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 560px) {
-      .curso-info__grid { grid-template-columns: 1fr; }
     }
   </style>
 </Layout>
