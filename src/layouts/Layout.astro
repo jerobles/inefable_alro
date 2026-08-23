@@ -134,11 +134,35 @@ const organizationSchema = {
         window.addEventListener('scroll', () => {
           nav.classList.toggle('is-scrolled', window.scrollY > 40);
         });
-        const toggle = document.querySelector('[data-nav-toggle]');
-        const menu = document.querySelector('[data-nav-menu]');
-        if (toggle && menu) {
-          toggle.addEventListener('click', () => menu.classList.toggle('is-open'));
-        }
+
+        const toggle = document.querySelector('[data-nav-toggle]') as HTMLElement | null;
+        const menu = document.querySelector('[data-nav-menu]') as HTMLElement | null;
+        if (!toggle || !menu) return;
+
+        const abrir = (v: boolean) => {
+          menu.classList.toggle('is-open', v);
+          toggle.setAttribute('aria-expanded', String(v));
+        };
+
+        toggle.addEventListener('click', (e) => {
+          e.stopPropagation(); // si no, el click llega a document y lo cierra de inmediato
+          abrir(!menu.classList.contains('is-open'));
+        });
+
+        // Cerrar al tocar fuera del menú (en celular el menú tapa media pantalla y
+        // antes solo se podía cerrar eligiendo una opción o volviendo al botón).
+        document.addEventListener('click', (e) => {
+          if (!menu.classList.contains('is-open')) return;
+          if (!menu.contains(e.target as Node)) abrir(false);
+        });
+
+        // Cerrar al elegir una opción (importante para los enlaces con ancla como
+        // /#historia, que no recargan la página y dejaban el menú abierto encima).
+        menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => abrir(false)));
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') abrir(false);
+        });
       }
 
       document.addEventListener('DOMContentLoaded', () => {

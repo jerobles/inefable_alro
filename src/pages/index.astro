@@ -68,7 +68,7 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
       </div>
       <div class="destacados__grid">
         {destacados.map((p) => (
-          <article class="destacados__card reveal">
+          <a class="destacados__card reveal" href="/tienda">
             {p.data.imagen && <img src={p.data.imagen} alt={p.data.nombre} width="1080" height="1350" loading="lazy" />}
             <div class="destacados__card-body">
               <h3>{p.data.nombre}</h3>
@@ -77,8 +77,9 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
                   ? `Desde $${formatPrecio(Math.min(...p.data.variantes.filter(v => v.precio !== undefined).map(v => v.precio as number)))} COP`
                   : 'Por cotización'}
               </p>
+              <span class="destacados__card-cta">Ver en el catálogo →</span>
             </div>
-          </article>
+          </a>
         ))}
       </div>
       <div class="destacados__cta reveal">
@@ -241,7 +242,23 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
     font-size: 1.6rem;
     color: var(--accent);
     margin-bottom: 16px;
+    /* El ícono entra girando y creciendo cuando la tarjeta aparece en pantalla.
+       Es un detalle, no una animación intrusiva: por convención del proyecto NO se
+       gatea con prefers-reduced-motion (eso se reserva para autoplay y parallax). */
+    transform: scale(0.6) rotate(-25deg);
+    opacity: 0;
+    transition: transform .7s cubic-bezier(.22,1,.36,1) .15s, opacity .5s ease .15s;
   }
+  .calidad__card.is-visible .calidad__icon {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+  /* Al pasar el mouse (o tocar) la tarjeta, el ícono responde un poco */
+  .calidad__card {
+    transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+  }
+  .calidad__card:hover { border-color: var(--accent); }
+  .calidad__card:hover .calidad__icon { transform: scale(1.15) rotate(6deg); }
   .calidad__card h3 { font-size: 1.1rem; margin-bottom: 10px; }
   .calidad__card p { font-size: 0.92rem; margin: 0; }
 
@@ -254,11 +271,19 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
     gap: 20px;
   }
   .destacados__card {
+    display: block;
     background: var(--bg-3);
     border: 1px solid var(--line);
     border-radius: var(--radius);
     overflow: hidden;
     transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  }
+  .destacados__card-cta {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 0.02em;
   }
   .destacados__card:hover {
     transform: translateY(-6px);
