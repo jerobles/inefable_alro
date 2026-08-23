@@ -40,8 +40,8 @@ src/
     talleres/*.md                 ← talleres (frontmatter: titulo, fecha, precio, notaPrecio, duracion, horario, descripcion, incluye, lugar, activo) — editable desde /admin
     productos/*.md                 ← catálogo (41 productos reales, frontmatter: nombre, categoria, descripcion, notasOlfativas, detallesTecnicos, modoDeUso, variantes [{presentacion, precio}], imagen, destacado, disponible) — editable desde /admin
   pages/
-    index.astro                ← inicio (hero = banner-principal.webp, video del taller en loop, destacados del catálogo justo después de Historia)
-    curso.astro                 ← lee la colección "talleres" (getCollection): tarjetas + form + JSON-LD, todo dinámico. Al enviar, redirige a Mercado Pago si el taller elegido tiene slug (precio fijo).
+    index.astro                ← inicio (hero = **video `banner-animado.mp4` en loop** con poster, reemplazó la foto fija; video del taller; destacados del catálogo justo después de Historia, cada tarjeta enlaza a /tienda). El autoplay de los videos SÍ se gatea con `prefers-reduced-motion` (animación intrusiva); los hover/fade no, por convención del proyecto.
+    curso.astro                 ← lee la colección "talleres" (getCollection): tarjetas + form + JSON-LD, todo dinámico. Al enviar, redirige a Mercado Pago si el taller elegido tiene slug (precio fijo). Incluye la **galería de talleres pasados**: carrusel con scroll-snap nativo (sin librerías) de 20 fotos en `public/images/talleres/` + video `taller-experiencia.mp4` con `preload="none"`. Las flechas solo empujan el scroll y se ocultan en los extremos; en táctil no se muestran. El usuario confirmó autorización de las asistentes para publicar su imagen (2026-08-22).
     tienda/index.astro            ← catálogo completo por categoría; cada tarjeta enlaza a la página del producto (ya NO salta al formulario). JSON-LD ItemList. Al final, el formulario general (por si quieren varios productos).
     tienda/[slug].astro           ← página por producto (41): foto grande, descripción, notas olfativas, **detalles técnicos y modo de uso** (contenido que ya existía en el frontmatter pero no se mostraba en ningún lado), presentaciones con precio, formulario fijado a ese producto, y relacionados de la misma categoría. JSON-LD Product por página.
     pago-confirmado.astro         ← página de vuelta tras pagar en Mercado Pago (back_urls success/pending), con CTA a WhatsApp para coordinar entrega
@@ -63,8 +63,11 @@ netlify/
     pago-producto.js             ← ídem desde tienda.astro: arma el pedido (producto + envío de Bogotá si aplica) y devuelve el link de checkout
 public/
   images/                     ← fotos reales de producto, banner-principal.webp (hero), curso-experiencia-poster.jpg (poster del video), logo.png (favicon/OG), logo-badge.svg (header/footer, recoloreado cream/cream-3, disco crema detrás)
-  images/productos/            ← 39 fotos del catálogo, optimizadas a WebP (~1080px)
+  images/productos/            ← 41 fotos del catálogo, optimizadas a WebP (~1080px)
+  images/talleres/             ← 20 fotos de talleres pasados para la galería de /curso (WebP ~1080px, 2.37MB → 1.62MB)
   videos/curso-experiencia.mp4 ← loop del taller en la home (10s, 552KB, comprimido con ffmpeg)
+  videos/banner-animado.mp4     ← hero del inicio (10s, 1280x720, sin audio, 2.6MB → 540KB)
+  videos/taller-experiencia.mp4 ← video de la galería de /curso (30s, con audio, preload="none" para que solo pese si lo reproducen)
   admin/                      ← index.html + config.yml (Decap CMS: colecciones "blog", "talleres" y "productos")
 netlify.toml                 ← [functions] directory + included_files para empaquetar netlify/functions/data/*.json junto con las funciones
 astro.config.mjs             ← incluye integración @astrojs/sitemap (fijar en v3.2.1, versiones más nuevas rompen con Astro 4)
