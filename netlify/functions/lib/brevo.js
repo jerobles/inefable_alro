@@ -154,8 +154,10 @@ export async function upsertBrevoContact({ apiKey, listId, email, attributes }) 
 
   // Deja constancia de lo que se envía: si un atributo queda vacío en Brevo pese a un
   // 200, comparar este log con lo que muestra el panel dice si el problema es el valor
-  // que mandamos o el tipo con el que está creado el atributo del otro lado.
-  console.log('[brevo] atributos enviados para', email, JSON.stringify(attributes));
+  // que mandamos o el atributo del otro lado. Se omiten los teléfonos para no dejar
+  // datos de contacto regados en los logs.
+  const { CELULAR, WHATSAPP, ...paraLog } = attributes || {};
+  console.log('[brevo] atributos enviados para', email, JSON.stringify(paraLog));
 
   let response = await enviar(attributes);
   if (response.ok) return { camposOmitidos: [] };
