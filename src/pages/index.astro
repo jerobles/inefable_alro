@@ -291,6 +291,10 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
   }
   @media (max-width: 560px) {
     .calidad__grid { grid-template-columns: 1fr; }
-    .destacados__grid { grid-template-columns: 1fr; }
+    /* Los destacados se quedan en 2 columnas, igual que el catálogo de /tienda */
+    .destacados__grid { gap: 12px; }
+    .destacados__card-body { padding: 12px 13px; }
+    .destacados__card-body h3 { font-size: 0.88rem; }
+    .destacados__card-body p { font-size: 0.78rem; }
   }
 </style>

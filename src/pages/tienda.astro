@@ -510,8 +510,28 @@ const productSchema = productos.map((p) => ({
       .tienda-grid { grid-template-columns: 1fr 1fr; }
       .tienda-form__grid { grid-template-columns: 1fr; }
     }
+    /* En celular se mantienen 2 columnas (no 1) para no obligar a recorrer 41
+       productos en fila india. Las tarjetas se compactan: la descripción se recorta
+       a 3 líneas y las notas olfativas se ocultan — el detalle completo queda a un
+       toque de distancia en el formulario, y así el catálogo se puede ojear. */
     @media (max-width: 600px) {
-      .tienda-grid { grid-template-columns: 1fr; }
+      .tienda-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .tienda-grupo h2 { font-size: 1.5rem; margin-bottom: 18px; }
+      .prod-card__body { padding: 12px 13px; }
+      .prod-card h3 { font-size: 0.9rem; margin-bottom: 6px; }
+      .prod-card__desc {
+        font-size: 0.76rem;
+        margin-bottom: 8px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .prod-card__notas { display: none; }
+      .prod-card__precios { font-size: 0.76rem; margin-bottom: 10px; }
+      .prod-card__precios li { padding: 3px 0; }
+      .prod-card__cta { padding: 10px 8px; font-size: 0.68rem; letter-spacing: 0.02em; }
     }
   </style>
 </Layout>
