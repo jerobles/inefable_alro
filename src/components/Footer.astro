@@ -89,7 +89,10 @@ const year = new Date().getFullYear();
 
       fetch('/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        // Sin "charset=UTF-8" el receptor asume latin-1 y las tildes y eñes llegan
+        // rotas ("Aromática" -> "Arom?tica"). Afecta nombres (María, Nuñez),
+        // direcciones y nombres de producto, y de ahí se propaga al CRM y a los correos.
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
         body,
       })
         .then(() => {
