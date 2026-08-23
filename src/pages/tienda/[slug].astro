@@ -1,0 +1,237 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import FormPedido from '../../components/FormPedido.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const productos = (await getCollection('productos')).filter((p) => p.data.disponible !== false);
+  return productos.map((producto) => ({
+    params: { slug: producto.slug },
+    props: { producto, productos },
+  }));
+}
+
+const { producto, productos } = Astro.props;
+const p = producto.data;
+
+const CATEGORIA_LABEL: Record<string, string> = {
+  'velas-aromaticas': 'Velas aromáticas',
+  'bebidas-frias': 'Bebidas frías',
+  postres: 'Postres',
+  'velas-intencion': 'Velas de intención',
+  varios: 'Varios',
+  recordatorios: 'Recordatorios',
+};
+
+const formatPrecio = (n: number) => n.toLocaleString('es-CO');
+
+const preciosConValor = p.variantes.filter((v) => v.precio !== undefined).map((v) => v.precio as number);
+const desde = preciosConValor.length > 0 ? Math.min(...preciosConValor) : undefined;
+
+// Otros productos de la misma categoría, para seguir navegando sin volver atrás.
+const relacionados = productos
+  .filter((otro) => otro.data.categoria === p.categoria && otro.slug !== producto.slug)
+  .slice(0, 4);
+
+const productSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: p.nombre,
+  description: p.descripcion,
+  image: p.imagen ? new URL(p.imagen, Astro.site).href : undefined,
+  category: CATEGORIA_LABEL[p.categoria] ?? p.categoria,
+  brand: { '@type': 'Brand', name: 'Inefable ALRO' },
+  offers: p.variantes
+    .filter((v) => v.precio !== undefined)
+    .map((v) => ({
+      '@type': 'Offer',
+      name: v.presentacion,
+      price: String(v.precio),
+      priceCurrency: 'COP',
+      availability: 'https://schema.org/InStock',
+      url: new URL(`/tienda/${producto.slug}`, Astro.site).href,
+    })),
+};
+
+const descripcionSeo = `${p.descripcion}${p.notasOlfativas ? ` Notas: ${p.notasOlfativas}` : ''}`.slice(0, 300);
+---
+
+<Layout title={p.nombre} description={descripcionSeo} image={p.imagen}>
+  <script type="application/ld+json" set:html={JSON.stringify(productSchema)} />
+
+  <section class="producto">
+    <div class="container">
+      <nav class="producto__migas reveal" aria-label="Ruta de navegación">
+        <a href="/tienda">Catálogo</a>
+        <span aria-hidden="true">/</span>
+        <span>{CATEGORIA_LABEL[p.categoria] ?? p.categoria}</span>
+      </nav>
+
+      <div class="producto__grid">
+        <div class="producto__media reveal">
+          {p.imagen ? (
+            <img src={p.imagen} alt={p.nombre} width="1080" height="1350" />
+          ) : (
+            <div class="producto__placeholder" aria-hidden="true">
+              <span>🕯️</span>
+              <small>Foto próximamente</small>
+            </div>
+          )}
+        </div>
+
+        <div class="producto__info reveal">
+          <span class="kicker">{CATEGORIA_LABEL[p.categoria] ?? p.categoria}</span>
+          <h1>{p.nombre}</h1>
+          {desde !== undefined && (
+            <p class="producto__desde">Desde <strong>${formatPrecio(desde)}</strong> COP</p>
+          )}
+          <p class="producto__desc">{p.descripcion}</p>
+
+          {p.notasOlfativas && (
+            <div class="producto__bloque">
+              <h2>Notas olfativas</h2>
+              <p>{p.notasOlfativas}</p>
+            </div>
+          )}
+
+          <div class="producto__bloque">
+            <h2>Presentaciones</h2>
+            <ul class="producto__precios">
+              {p.variantes.map((v) => (
+                <li>
+                  <span>{v.presentacion}</span>
+                  <span>{v.precio !== undefined ? `$${formatPrecio(v.precio)} COP` : 'Por cotización'}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {p.detallesTecnicos && (
+            <div class="producto__bloque">
+              <h2>Detalles</h2>
+              <p>{p.detallesTecnicos}</p>
+            </div>
+          )}
+
+          {p.modoDeUso && (
+            <div class="producto__bloque">
+              <h2>Modo de uso</h2>
+              <p>{p.modoDeUso}</p>
+            </div>
+          )}
+
+          <a href="#form-producto" class="btn btn-primary producto__cta">Quiero este producto</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <FormPedido productos={productos} productoFijo={producto} />
+
+  {relacionados.length > 0 && (
+    <section class="relacionados section-light">
+      <div class="container">
+        <h2 class="reveal">También en {CATEGORIA_LABEL[p.categoria] ?? p.categoria}</h2>
+        <div class="relacionados__grid">
+          {relacionados.map((otro) => (
+            <a class="relacionados__card reveal" href={`/tienda/${otro.slug}`}>
+              {otro.data.imagen && <img src={otro.data.imagen} alt={otro.data.nombre} width="1080" height="1350" loading="lazy" />}
+              <div class="relacionados__body">
+                <h3>{otro.data.nombre}</h3>
+              </div>
+            </a>
+          ))}
+        </div>
+        <div class="relacionados__cta reveal">
+          <a href="/tienda" class="btn btn-ghost">Ver todo el catálogo</a>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <style>
+    .producto { padding: 160px 0 72px; background: var(--bg-2); }
+    .producto__migas { font-size: 0.82rem; color: var(--cream-3); margin-bottom: 28px; display: flex; gap: 8px; }
+    .producto__migas a { color: var(--accent); }
+    .producto__migas a:hover { color: var(--gold); }
+
+    .producto__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+    .producto__media img {
+      width: 100%;
+      aspect-ratio: 4/5;
+      object-fit: cover;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      display: block;
+    }
+    .producto__placeholder {
+      width: 100%; aspect-ratio: 4/5;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; color: var(--cream-3); background: var(--bg-3);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .producto__placeholder span { font-size: 2.4rem; }
+
+    .producto__info h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); margin: 10px 0 14px; }
+    .producto__desde { font-family: var(--font-display); font-size: 1.3rem; color: var(--gold); margin-bottom: 18px; }
+    .producto__desde strong { font-weight: 500; }
+    .producto__desc { font-size: 1.02rem; }
+
+    .producto__bloque { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); }
+    .producto__bloque h2 {
+      font-family: var(--font-body);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .producto__bloque p { margin: 0; font-size: 0.94rem; }
+
+    .producto__precios { list-style: none; padding: 0; margin: 0; }
+    .producto__precios li {
+      display: flex;
+      justify-content: space-between;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.94rem;
+      color: var(--cream-2);
+    }
+    .producto__precios li:last-child { border-bottom: none; }
+
+    .producto__cta { margin-top: 32px; }
+
+    .relacionados { padding: 72px 0; }
+    .relacionados h2 { font-size: 1.5rem; margin-bottom: 28px; }
+    .relacionados__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .relacionados__card {
+      display: block;
+      background: #fff;
+      border: 1px solid rgba(32,26,18,0.1);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+    .relacionados__card:hover {
+      transform: translateY(-6px);
+      border-color: var(--accent);
+      box-shadow: 0 16px 32px rgba(32,26,18,0.12);
+    }
+    .relacionados__card img { width: 100%; aspect-ratio: 4/5; object-fit: cover; display: block; }
+    .relacionados__body { padding: 12px 14px; }
+    .relacionados__body h3 { font-size: 0.88rem; margin: 0; }
+    .relacionados__cta { margin-top: 32px; }
+
+    @media (max-width: 900px) {
+      .producto { padding: 130px 0 56px; }
+      .producto__grid { grid-template-columns: 1fr; gap: 32px; }
+      .relacionados__grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .relacionados__grid { gap: 12px; }
+      .relacionados__body { padding: 10px 12px; }
+      .relacionados__body h3 { font-size: 0.82rem; }
+    }
+  </style>
+</Layout>

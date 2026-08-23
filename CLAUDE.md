@@ -33,7 +33,7 @@ Arquetipo "Editorial Dark Warm" adaptado a velas:
 ```
 src/
   layouts/Layout.astro       ← head (SEO, canonical, JSON-LD Organization), header, footer, whatsapp button, script de reveals
-  components/                ← Header.astro, Footer.astro (incluye form de newsletter), WhatsAppButton.astro (flotante), WhatsAppBanner.astro (banner con ícono+número+CTA, usado en /curso)
+  components/                ← Header.astro, Footer.astro (incluye form de newsletter), WhatsAppButton.astro (flotante), WhatsAppBanner.astro (banner con ícono+número+CTA), FormPedido.astro (formulario de pedido compartido entre /tienda y cada página de producto — acepta `productoFijo` para quedar amarrado a un producto)
   content/
     config.ts                  ← schemas de las colecciones (blog, talleres, productos)
     blog/*.md                    ← posts del blog (frontmatter: title, description, date, image, draft)
@@ -42,7 +42,8 @@ src/
   pages/
     index.astro                ← inicio (hero = banner-principal.webp, video del taller en loop, destacados del catálogo justo después de Historia)
     curso.astro                 ← lee la colección "talleres" (getCollection): tarjetas + form + JSON-LD, todo dinámico. Al enviar, redirige a Mercado Pago si el taller elegido tiene slug (precio fijo).
-    tienda.astro                 ← lee la colección "productos": catálogo completo por categoría + form de pedido (producto, presentación, cantidad, zona de entrega, dirección), JSON-LD Product. Entregas en Bogotá redirigen a Mercado Pago; otras ciudades siguen el flujo manual por WhatsApp.
+    tienda/index.astro            ← catálogo completo por categoría; cada tarjeta enlaza a la página del producto (ya NO salta al formulario). JSON-LD ItemList. Al final, el formulario general (por si quieren varios productos).
+    tienda/[slug].astro           ← página por producto (41): foto grande, descripción, notas olfativas, **detalles técnicos y modo de uso** (contenido que ya existía en el frontmatter pero no se mostraba en ningún lado), presentaciones con precio, formulario fijado a ese producto, y relacionados de la misma categoría. JSON-LD Product por página.
     pago-confirmado.astro         ← página de vuelta tras pagar en Mercado Pago (back_urls success/pending), con CTA a WhatsApp para coordinar entrega
     blog/index.astro            ← listado
     blog/[...slug].astro        ← post individual

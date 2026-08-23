@@ -1,0 +1,183 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import FormPedido from '../../components/FormPedido.astro';
+import { getCollection } from 'astro:content';
+
+const allProductos = await getCollection('productos');
+const productos = allProductos.filter((p) => p.data.disponible !== false);
+
+const CATEGORIAS = [
+  { slug: 'velas-aromaticas', label: 'Velas aromáticas' },
+  { slug: 'bebidas-frias', label: 'Bebidas frías' },
+  { slug: 'postres', label: 'Postres' },
+  { slug: 'velas-intencion', label: 'Velas de intención' },
+  { slug: 'varios', label: 'Varios' },
+  { slug: 'recordatorios', label: 'Recordatorios' },
+];
+
+const grupos = CATEGORIAS.map((cat) => ({
+  ...cat,
+  items: productos.filter((p) => p.data.categoria === cat.slug),
+})).filter((g) => g.items.length > 0);
+
+const formatPrecio = (n: number) => n.toLocaleString('es-CO');
+
+// Mismo valor por defecto que netlify/functions/pago-producto.js — si se cambia la
+// variable de entorno en Netlify, hay que redesplegar para que el texto de acá y el
+// cobro real queden sincronizados.
+const envioResto = Number(import.meta.env.ENVIO_BOGOTA_RESTO_COP) || 15000;
+
+// El detalle completo de cada producto (con su propio JSON-LD) vive en /tienda/[slug].
+// Acá se deja solo un ItemList para que Google entienda que esto es un catálogo y
+// encuentre las páginas individuales.
+const listSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Catálogo Inefable ALRO',
+  numberOfItems: productos.length,
+  itemListElement: productos.map((p, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    url: new URL(`/tienda/${p.slug}`, Astro.site).href,
+    name: p.data.nombre,
+  })),
+};
+---
+
+<Layout
+  title="Tienda"
+  description="Catálogo completo de velas artesanales Inefable ALRO: aromáticas, decorativas, de intención y recordatorios para eventos. Envío en Bogotá y a todo el país."
+>
+  <script type="application/ld+json" set:html={JSON.stringify(listSchema)} />
+
+  <section class="tienda-hero">
+    <div class="grain"></div>
+    <div class="container">
+      <p class="kicker reveal">Cada vela cuenta una historia</p>
+      <h1 class="reveal">Nuestro <em>catálogo</em></h1>
+      <p class="tienda-hero__sub reveal">
+        Envío gratis al norte de Bogotá, {formatPrecio(envioResto)} COP al resto de la ciudad — paga en línea
+        al hacer tu pedido. A nivel nacional, completa el formulario o escríbenos por WhatsApp y coordinamos
+        el envío con la transportadora.
+      </p>
+    </div>
+  </section>
+
+  {grupos.map((grupo) => (
+    <section class="tienda-grupo section-light">
+      <div class="container">
+        <h2 class="reveal">{grupo.label}</h2>
+        <div class="tienda-grid">
+          {grupo.items.map((p) => (
+            <a class="prod-card reveal" href={`/tienda/${p.slug}`}>
+              <div class="prod-card__img">
+                {p.data.imagen ? (
+                  <img src={p.data.imagen} alt={p.data.nombre} width="1080" height="1350" loading="lazy" />
+                ) : (
+                  <div class="prod-card__placeholder" aria-hidden="true">
+                    <span>🕯️</span>
+                    <small>Foto próximamente</small>
+                  </div>
+                )}
+              </div>
+              <div class="prod-card__body">
+                <h3>{p.data.nombre}</h3>
+                <p class="prod-card__desc">{p.data.descripcion}</p>
+                {p.data.notasOlfativas && <p class="prod-card__notas"><strong>Notas:</strong> {p.data.notasOlfativas}</p>}
+                <ul class="prod-card__precios">
+                  {p.data.variantes.map((v) => (
+                    <li>
+                      <span>{v.presentacion}</span>
+                      <span>{v.precio !== undefined ? `$${formatPrecio(v.precio)} COP` : 'Por cotización'}</span>
+                    </li>
+                  ))}
+                </ul>
+                <span class="prod-card__cta">Ver producto →</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <FormPedido productos={productos} />
+
+  <style>
+    .tienda-hero { position: relative; padding: 180px 0 80px; background: var(--bg-2); }
+    .tienda-hero__sub { max-width: 560px; margin-top: 18px; font-size: 1.05rem; }
+
+    .tienda-grupo { padding: 56px 0; }
+    .tienda-grupo h2 { margin-bottom: 28px; }
+    .tienda-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .prod-card {
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border: 1px solid rgba(32,26,18,0.1);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+    .prod-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--accent);
+      box-shadow: 0 16px 32px rgba(32,26,18,0.12);
+    }
+    .prod-card__img { aspect-ratio: 4/5; overflow: hidden; background: var(--paper); }
+    .prod-card__img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .prod-card__placeholder {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; color: var(--cream-3); background: var(--paper);
+    }
+    .prod-card__placeholder span { font-size: 2rem; }
+    .prod-card__placeholder small { font-size: 0.75rem; }
+    .prod-card__body { padding: 20px; display: flex; flex-direction: column; flex: 1; }
+    .prod-card h3 { font-size: 1.1rem; margin: 0 0 8px; }
+    .prod-card__desc { font-size: 0.85rem; color: #6b5d47; margin: 0 0 10px; flex: 1; }
+    .prod-card__notas { font-size: 0.78rem; color: #6b5d47; margin: 0 0 12px; }
+    .prod-card__precios { list-style: none; padding: 0; margin: 0 0 14px; font-size: 0.85rem; }
+    .prod-card__precios li { display: flex; justify-content: space-between; padding: 4px 0; border-top: 1px solid rgba(32,26,18,0.08); color: var(--ink); }
+    .prod-card__precios li:first-child { border-top: none; }
+    .prod-card__cta {
+      margin-top: auto;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent-2);
+      letter-spacing: 0.02em;
+    }
+    .prod-card:hover .prod-card__cta { color: var(--accent); }
+
+    @media (max-width: 900px) {
+      .tienda-grid { grid-template-columns: 1fr 1fr; }
+    }
+    /* En celular se mantienen 2 columnas (no 1) para no obligar a recorrer 41
+       productos en fila india. Las tarjetas se compactan: la descripción se recorta
+       a 3 líneas y las notas olfativas se ocultan — el detalle completo está en la
+       página de cada producto. */
+    @media (max-width: 600px) {
+      .tienda-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .tienda-grupo h2 { font-size: 1.5rem; margin-bottom: 18px; }
+      .prod-card__body { padding: 12px 13px; }
+      .prod-card h3 { font-size: 0.9rem; margin-bottom: 6px; }
+      .prod-card__desc {
+        font-size: 0.76rem;
+        margin-bottom: 8px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .prod-card__notas { display: none; }
+      .prod-card__precios { font-size: 0.76rem; margin-bottom: 8px; }
+      .prod-card__precios li { padding: 3px 0; }
+      .prod-card__cta { font-size: 0.74rem; }
+    }
+  </style>
+</Layout>

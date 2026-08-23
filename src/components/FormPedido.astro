@@ -1,0 +1,371 @@
+---
+import WhatsAppBanner from './WhatsAppBanner.astro';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  /** Catálogo completo — se usa para el selector cuando el pedido no es de un producto puntual. */
+  productos: CollectionEntry<'productos'>[];
+  /** Si viene, el formulario queda fijado a ese producto (páginas de detalle) y no muestra el selector. */
+  productoFijo?: CollectionEntry<'productos'>;
+}
+
+const { productos, productoFijo } = Astro.props;
+
+const formatPrecio = (n: number) => n.toLocaleString('es-CO');
+
+// Mismos valores por defecto que netlify/functions/pago-producto.js.
+const envioResto = Number(import.meta.env.ENVIO_BOGOTA_RESTO_COP) || 15000;
+
+// Datos livianos para que el script arme el selector de presentación y sepa si el
+// producto elegido tiene precio fijo (puede pagarse en línea) o es por cotización.
+const fuente = productoFijo ? [productoFijo] : productos;
+const productosData = Object.fromEntries(
+  fuente.map((p) => [p.data.nombre, { slug: p.slug, variantes: p.data.variantes }])
+);
+---
+
+<section class="pedido">
+  <div class="container pedido__grid">
+    <div class="pedido__intro reveal">
+      <span class="kicker">Haz tu pedido</span>
+      <h2>
+        {productoFijo ? '¿Te gustó? Cuéntanos y coordinamos' : 'Cuéntanos qué te gustó y te contactamos'}
+      </h2>
+      <p>
+        Completa el formulario con tus datos. Si entregamos en Bogotá, pagas en línea de una vez
+        (envío gratis al norte, {formatPrecio(envioResto)} COP al resto de la ciudad). A nivel
+        nacional, coordinamos el envío por WhatsApp.
+      </p>
+      <WhatsAppBanner texto="¿Prefieres escribirnos directo?" mensaje="¡Hola! Quiero hacer un pedido de Inefable ALRO 🕯️" />
+    </div>
+
+    <form
+      class="pedido__form reveal"
+      name="pedido-producto"
+      method="POST"
+      data-netlify="true"
+      netlify-honeypot="bot-field-prod"
+      id="form-producto"
+    >
+      <input type="hidden" name="form-name" value="pedido-producto" />
+      <p class="hidden-field"><label>No llenar: <input name="bot-field-prod" /></label></p>
+
+      <label>
+        Nombre completo
+        <input type="text" name="nombre" required />
+      </label>
+      <label>
+        Número de WhatsApp
+        <div class="phone-field">
+          <span class="phone-field__prefix">+57</span>
+          <input
+            type="tel"
+            name="whatsapp"
+            required
+            inputmode="numeric"
+            pattern="3[0-9]{9}"
+            maxlength="10"
+            placeholder="3001234567"
+            title="Escribe tu celular colombiano: 10 dígitos, comenzando por 3"
+          />
+        </div>
+      </label>
+      <label>
+        Correo electrónico
+        <input
+          type="email"
+          name="correo"
+          required
+          pattern="[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}"
+          title="Escribe un correo válido, por ejemplo nombre@dominio.com"
+        />
+      </label>
+
+      {productoFijo ? (
+        <>
+          <input type="hidden" name="producto" id="select-producto" value={productoFijo.data.nombre} data-slug={productoFijo.slug} />
+          <p class="pedido__fijo">Producto: <strong>{productoFijo.data.nombre}</strong></p>
+        </>
+      ) : (
+        <label>
+          ¿Qué producto te interesa?
+          <select name="producto" id="select-producto">
+            {productos.map((p) => <option data-slug={p.slug}>{p.data.nombre}</option>)}
+            <option>Varios productos / no estoy segur@</option>
+          </select>
+        </label>
+      )}
+
+      <label>
+        Presentación
+        <select name="presentacion" id="select-presentacion"></select>
+      </label>
+      <label>
+        Cantidad
+        <input type="number" name="cantidad" id="input-cantidad" min="1" max="20" value="1" inputmode="numeric" />
+      </label>
+      <label>
+        ¿Dónde te entregamos?
+        <select name="entrega" id="select-entrega">
+          <option value="bogota-norte">Norte de Bogotá — envío gratis, pago en línea</option>
+          <option value="bogota-resto">Resto de Bogotá — domicilio {formatPrecio(envioResto)} COP, pago en línea</option>
+          <option value="otra">Otra ciudad — coordinamos el envío con la transportadora por WhatsApp</option>
+        </select>
+      </label>
+      <label id="campo-direccion">
+        Dirección de entrega en Bogotá
+        <input type="text" name="direccion" id="input-direccion" placeholder="Calle, número, barrio" />
+      </label>
+
+      <label class="checkbox-field">
+        <input type="checkbox" name="acepta_privacidad" required />
+        <span>He leído y acepto la <a href="/privacidad">política de privacidad</a>.</span>
+      </label>
+
+      <button type="submit" class="btn btn-primary">Enviar pedido</button>
+      <p class="pedido__status" data-form-status role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
+
+<script type="application/json" id="productos-data" set:html={JSON.stringify(productosData)} />
+
+<script>
+  interface Variante { presentacion: string; precio?: number; }
+  interface ProductoInfo { slug: string; variantes: Variante[]; }
+
+  function safe(fn: () => void, name: string) {
+    try { fn(); } catch (e) { console.warn('[' + name + ']', e); }
+  }
+
+  function cargarProductosData(): Record<string, ProductoInfo> {
+    const el = document.getElementById('productos-data');
+    if (!el?.textContent) return {};
+    try { return JSON.parse(el.textContent); } catch { return {}; }
+  }
+
+  const productosData = cargarProductosData();
+
+  // Sirve tanto para el <select> del catálogo como para el <input hidden> de una
+  // página de producto: en ambos casos el valor es el nombre del producto.
+  function productoElegido() {
+    return document.getElementById('select-producto') as HTMLSelectElement | HTMLInputElement | null;
+  }
+
+  function slugElegido(el: HTMLSelectElement | HTMLInputElement | null) {
+    if (!el) return undefined;
+    if (el.tagName === 'SELECT') return (el as HTMLSelectElement).selectedOptions[0]?.dataset.slug;
+    return el.dataset.slug;
+  }
+
+  function poblarPresentaciones(nombreProducto: string) {
+    const varianteSelect = document.getElementById('select-presentacion') as HTMLSelectElement | null;
+    if (!varianteSelect) return;
+
+    const info = productosData[nombreProducto];
+    varianteSelect.innerHTML = '';
+
+    if (!info || info.variantes.length === 0) {
+      varianteSelect.disabled = true;
+      return;
+    }
+
+    info.variantes.forEach((v) => {
+      const opt = document.createElement('option');
+      opt.value = v.presentacion;
+      opt.textContent =
+        v.precio !== undefined ? `${v.presentacion} — $${v.precio.toLocaleString('es-CO')} COP` : `${v.presentacion} (por cotización)`;
+      varianteSelect.appendChild(opt);
+    });
+    varianteSelect.disabled = false;
+  }
+
+  function actualizarVisibilidadDireccion() {
+    const entregaSelect = document.getElementById('select-entrega') as HTMLSelectElement | null;
+    const campoDireccion = document.getElementById('campo-direccion') as HTMLElement | null;
+    const inputDireccion = document.getElementById('input-direccion') as HTMLInputElement | null;
+    if (!entregaSelect || !campoDireccion || !inputDireccion) return;
+
+    const esBogota = entregaSelect.value.startsWith('bogota-');
+    campoDireccion.style.display = esBogota ? '' : 'none';
+    inputDireccion.required = esBogota;
+  }
+
+  function initSelectores() {
+    const prodEl = productoElegido();
+    const entregaSelect = document.getElementById('select-entrega') as HTMLSelectElement | null;
+    if (prodEl) {
+      poblarPresentaciones(prodEl.value);
+      if (prodEl.tagName === 'SELECT') {
+        prodEl.addEventListener('change', () => poblarPresentaciones(prodEl.value));
+      }
+    }
+    if (entregaSelect) {
+      actualizarVisibilidadDireccion();
+      entregaSelect.addEventListener('change', actualizarVisibilidadDireccion);
+    }
+  }
+
+  function initPedidoForm() {
+    const form = document.getElementById('form-producto') as HTMLFormElement | null;
+    if (!form) return;
+    const status = form.querySelector('[data-form-status]');
+    const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+
+    const whatsappInput = form.querySelector('input[name="whatsapp"]') as HTMLInputElement | null;
+    if (whatsappInput) {
+      whatsappInput.addEventListener('input', () => {
+        whatsappInput.value = whatsappInput.value.replace(/\D/g, '').slice(0, 10);
+      });
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+
+      const prodEl = productoElegido();
+      const varianteSelect = document.getElementById('select-presentacion') as HTMLSelectElement | null;
+      const entregaSelect = document.getElementById('select-entrega') as HTMLSelectElement | null;
+      const cantidadInput = document.getElementById('input-cantidad') as HTMLInputElement | null;
+      const productoSlug = slugElegido(prodEl);
+      const info = prodEl ? productosData[prodEl.value] : undefined;
+      const varianteInfo = info?.variantes.find((v) => v.presentacion === varianteSelect?.value);
+      const nombre = (form.querySelector('input[name="nombre"]') as HTMLInputElement | null)?.value || '';
+      const correo = (form.querySelector('input[name="correo"]') as HTMLInputElement | null)?.value || '';
+
+      const esBogota = entregaSelect?.value.startsWith('bogota-');
+      const zonaBogota = entregaSelect?.value === 'bogota-norte' ? 'norte' : 'resto';
+      const sePuedePagarEnLinea = esBogota && !!productoSlug && varianteInfo?.precio !== undefined;
+
+      const data = new FormData(form);
+      const body = new URLSearchParams(data as any).toString();
+      if (submitBtn) submitBtn.disabled = true;
+
+      // El registro en Brevo sigue el camino de siempre (Netlify Forms → producto-sync).
+      fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+      })
+        .then(() => {
+          if (!sePuedePagarEnLinea) {
+            if (status) status.textContent = '¡Listo! Te contactaremos muy pronto por WhatsApp para confirmar tu pedido.';
+            if (submitBtn) submitBtn.disabled = false;
+            form.reset();
+            poblarPresentaciones(prodEl?.value || '');
+            actualizarVisibilidadDireccion();
+            return;
+          }
+
+          if (status) status.textContent = 'Te estamos llevando a la página de pago…';
+
+          fetch('/.netlify/functions/pago-producto', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productoSlug,
+              variantePresentacion: varianteSelect?.value,
+              cantidad: cantidadInput?.value,
+              nombre,
+              correo,
+              zonaBogota,
+            }),
+          })
+            .then((res) => (res.ok ? res.json() : Promise.reject(new Error('pago-producto no disponible'))))
+            .then(({ checkoutUrl }) => { window.location.href = checkoutUrl; })
+            .catch(() => {
+              if (status) status.textContent = '¡Listo! Te contactaremos muy pronto por WhatsApp para confirmar tu pedido y el pago.';
+              if (submitBtn) submitBtn.disabled = false;
+              form.reset();
+              poblarPresentaciones(prodEl?.value || '');
+              actualizarVisibilidadDireccion();
+            });
+        })
+        .catch(() => {
+          if (status) status.textContent = 'Hubo un problema al enviar. Escríbenos directo por WhatsApp, por favor.';
+          if (submitBtn) submitBtn.disabled = false;
+        });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    safe(initSelectores, 'initSelectores');
+    safe(initPedidoForm, 'initPedidoForm');
+  });
+</script>
+
+<style>
+  .pedido { padding: 96px 0; background: var(--bg); overflow: hidden; }
+  .pedido__grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 64px; }
+  .pedido__intro, .pedido__form { min-width: 0; }
+  .pedido__intro p { max-width: 400px; margin-bottom: 24px; }
+  .pedido__form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+    border-radius: var(--radius);
+    box-shadow: 0 0 0 0 rgba(201,138,69,0);
+    transition: box-shadow .5s ease;
+  }
+  .pedido--highlight .pedido__form { box-shadow: 0 0 0 3px rgba(201,138,69,0.4); }
+  .pedido__fijo {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--cream-2);
+    padding: 12px 14px;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .pedido__fijo strong { color: var(--cream); }
+  .pedido__form label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--cream-2);
+    min-width: 0;
+  }
+  .pedido__form input[type="text"],
+  .pedido__form input[type="tel"],
+  .pedido__form input[type="email"],
+  .pedido__form input[type="number"],
+  .pedido__form select {
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    color: var(--cream);
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    font-family: var(--font-body);
+    width: 100%;
+    min-width: 0;
+  }
+  .pedido__form input:focus, .pedido__form select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .phone-field { display: flex; gap: 8px; }
+  .phone-field__prefix {
+    display: flex;
+    align-items: center;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    color: var(--cream-2);
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+  .phone-field input { flex: 1; min-width: 0; }
+  .checkbox-field { flex-direction: row !important; align-items: flex-start; gap: 10px !important; }
+  .checkbox-field input { margin-top: 4px; }
+  .checkbox-field a { color: var(--accent); }
+  .pedido__status { min-height: 1.2em; color: var(--gold); font-size: 0.9rem; }
+  .hidden-field { position: absolute; left: -9999px; }
+
+  @media (max-width: 900px) {
+    .pedido__grid { grid-template-columns: 1fr; }
+  }
+</style>
