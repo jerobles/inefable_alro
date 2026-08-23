@@ -23,7 +23,10 @@ const links = [
       {links.map((link) => (
         <a href={link.href}>{link.label}</a>
       ))}
-      <a href="/curso" class="btn btn-primary site-header__cta">Reserva tu cupo</a>
+      <div class="site-header__ctas">
+        <a href="/tienda" class="btn btn-ghost site-header__cta">Ver catálogo</a>
+        <a href="/curso" class="btn btn-primary site-header__cta">Reserva tu cupo</a>
+      </div>
     </nav>
   </div>
 </header>
@@ -78,7 +81,11 @@ const links = [
     transition: color .2s ease;
   }
   .site-header__nav a:hover { color: var(--accent); }
-  .site-header__cta { padding: 10px 22px; }
+  .site-header__ctas { display: flex; align-items: center; gap: 10px; }
+  .site-header__cta { padding: 10px 18px; font-size: 0.78rem; white-space: nowrap; }
+  /* El "ghost" del catálogo compite menos visualmente que el ámbar del taller,
+     pero queda al mismo nivel jerárquico: son las dos cosas que se venden. */
+  .site-header__ctas .btn-ghost { border-color: rgba(243,234,217,0.28); }
 
   .site-header__toggle {
     display: none;
@@ -114,5 +121,14 @@ const links = [
       border-left: 1px solid var(--line);
     }
     .site-header__nav.is-open { transform: translateX(0); }
+    /* En el menú lateral los dos botones se apilan a lo ancho, sin apretarse */
+    .site-header__ctas {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .site-header__cta { justify-content: center; padding: 13px 18px; }
   }
 </style>

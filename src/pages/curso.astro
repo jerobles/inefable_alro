@@ -57,6 +57,10 @@ const eventsSchema = talleres.map((t) => ({
   },
 }));
 
+// Fotos de talleres pasados en public/images/talleres/. El usuario confirmó tener
+// autorización de las asistentes para publicar su imagen (2026-08-22).
+const fotosGaleria = Array.from({ length: 20 }, (_, i) => i + 1);
+
 const metaDescripcion =
   talleres.length > 0
     ? `Reserva tu cupo en nuestros próximos talleres: ${talleres.map((t) => `${t.data.titulo} (${formatFecha(t.data.fecha)})`).join(' y ')}. Un espacio para tu creatividad y tus sentidos.`
@@ -110,6 +114,50 @@ const metaDescripcion =
     )}
 
     <p class="curso-talleres__nota container reveal">Los cupos son limitados para garantizar una experiencia personalizada.</p>
+  </section>
+
+  <!-- GALERÍA: prueba social de talleres pasados -->
+  <section class="galeria">
+    <div class="grain"></div>
+    <div class="container">
+      <div class="galeria__head reveal">
+        <span class="kicker">Así se vive</span>
+        <h2>Momentos de nuestros <em>talleres</em></h2>
+        <p>Fotos reales de quienes ya vivieron la experiencia: crear su propia vela, a su ritmo, en un espacio pensado para desconectarse.</p>
+      </div>
+
+      <div class="galeria__video reveal">
+        <video
+          controls
+          preload="none"
+          playsinline
+          poster="/images/taller-experiencia-poster.jpg"
+          width="720"
+          height="1280"
+          aria-label="Video de un taller de velas de Inefable ALRO"
+        >
+          <source src="/videos/taller-experiencia.mp4" type="video/mp4" />
+        </video>
+      </div>
+
+      <div class="galeria__grid">
+        {fotosGaleria.map((n) => (
+          <figure class="galeria__item reveal">
+            <img
+              src={`/images/talleres/taller-${String(n).padStart(2, '0')}.webp`}
+              alt={`Asistentes al taller de velas de Inefable ALRO (${n})`}
+              width="1080"
+              height="1350"
+              loading="lazy"
+            />
+          </figure>
+        ))}
+      </div>
+
+      <div class="galeria__cta reveal">
+        <a href="#form-curso" class="btn btn-primary">Quiero vivir la experiencia</a>
+      </div>
+    </div>
   </section>
 
   <section class="curso-form">
@@ -334,6 +382,40 @@ const metaDescripcion =
     .curso-talleres__vacio { text-align: center; max-width: 480px; }
     .curso-talleres__vacio p { color: #6b5d47; margin-bottom: 20px; }
 
+    /* GALERÍA de talleres pasados */
+    .galeria { position: relative; background: var(--bg-2); padding: 88px 0; }
+    .galeria__head { max-width: 560px; margin-bottom: 40px; }
+    .galeria__head p { margin-top: 14px; }
+    .galeria__video { max-width: 340px; margin: 0 auto 40px; }
+    .galeria__video video {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--bg-3);
+    }
+    .galeria__grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    .galeria__item {
+      margin: 0;
+      overflow: hidden;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+    }
+    .galeria__item img {
+      width: 100%;
+      aspect-ratio: 4/5;
+      object-fit: cover;
+      display: block;
+      transition: transform .5s ease;
+    }
+    .galeria__item:hover img { transform: scale(1.06); }
+    .galeria__cta { margin-top: 40px; text-align: center; }
+
     .curso-form__grid {
       display: grid;
       grid-template-columns: 1fr 1.1fr;
@@ -403,6 +485,12 @@ const metaDescripcion =
     @media (max-width: 900px) {
       .curso-talleres__grid { grid-template-columns: 1fr; }
       .curso-form__grid { grid-template-columns: 1fr; }
+      .galeria__grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .galeria { padding: 64px 0; }
+      .galeria__grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .galeria__video { max-width: 100%; }
     }
   </style>
 </Layout>

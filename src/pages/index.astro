@@ -13,7 +13,22 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
   <!-- HERO -->
   <section class="hero">
     <div class="hero__bg">
-      <img src="/images/banner-principal.webp" alt="Vela artesanal Inefable ALRO junto a vela decorativa, ambiente cálido" width="1440" height="1440" />
+      <!-- El poster es la primera imagen que se ve y la que queda si el navegador
+           bloquea el autoplay o si el visitante pidió reducir el movimiento. -->
+      <video
+        id="hero-video"
+        class="hero__video"
+        poster="/images/banner-animado-poster.jpg"
+        width="1280"
+        height="720"
+        muted
+        loop
+        playsinline
+        preload="metadata"
+        aria-label="Velas artesanales Inefable ALRO encendidas en un ambiente cálido"
+      >
+        <source src="/videos/banner-animado.mp4" type="video/mp4" />
+      </video>
       <div class="hero__tint"></div>
     </div>
     <div class="grain"></div>
@@ -153,18 +168,23 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
       try { fn(); } catch (e) { console.warn('[' + name + ']', e); }
     }
 
-    function initTallerVideo() {
-      const video = document.getElementById('taller-video') as HTMLVideoElement | null;
+    // Autoplay sí se gatea con prefers-reduced-motion: es una animación intrusiva,
+    // a diferencia de los hover/fade que por convención del proyecto nunca se gatean.
+    function reproducirSiSePuede(id: string) {
+      const video = document.getElementById(id) as HTMLVideoElement | null;
       if (!video) return;
-      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (!prefersReducedMotion) {
-        video.play().catch(() => {
-          // Autoplay bloqueado por el navegador: se queda en el poster, sin problema.
-        });
-      }
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      video.play().catch(() => {
+        // Autoplay bloqueado por el navegador: se queda en el poster, sin problema.
+      });
     }
 
-    document.addEventListener('DOMContentLoaded', () => safe(initTallerVideo, 'initTallerVideo'));
+    function initVideos() {
+      reproducirSiSePuede('hero-video');
+      reproducirSiSePuede('taller-video');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => safe(initVideos, 'initVideos'));
   </script>
 
 </Layout>
@@ -182,11 +202,12 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
     position: absolute;
     inset: 0;
   }
-  .hero__bg img {
+  .hero__bg img, .hero__video {
     width: 100%;
     height: 100%;
     object-fit: cover;
     filter: saturate(1.05) contrast(1.05);
+    display: block;
   }
   .hero__tint {
     position: absolute;
