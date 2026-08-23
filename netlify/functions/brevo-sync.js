@@ -1,4 +1,12 @@
-import { toE164Colombia, parseRecipients, sendBrevoEmail, upsertBrevoContact } from './lib/brevo.js';
+import {
+  toE164Colombia,
+  parseRecipients,
+  sendBrevoEmail,
+  upsertBrevoContact,
+  getBrevoContact,
+  acumularValor,
+  hoyISO,
+} from './lib/brevo.js';
 
 export const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -37,6 +45,11 @@ export const handler = async (event) => {
   // Si Brevo rechaza el contacto y cortáramos acá, no saldría ningún correo y además
   // Netlify desactivaría el webhook tras 6 fallos, perdiendo las inscripciones
   // siguientes en silencio.
+  // Ver la nota en producto-sync.js: se lee antes de escribir para acumular el
+  // historial de talleres en vez de sobrescribir el anterior.
+  const existente = await getBrevoContact({ apiKey, email });
+  const attrsPrevios = existente?.attributes || {};
+
   let errorContacto = null;
   try {
     await upsertBrevoContact({
@@ -46,8 +59,9 @@ export const handler = async (event) => {
       attributes: {
         NOMBRE: nombre,
         WHATSAPP: whatsappLead,
-        TALLER: taller,
+        TALLER: acumularValor(attrsPrevios.TALLER, taller),
         TURNO_PREFERENCIA: data.turno || '',
+        ULTIMO_PEDIDO: hoyISO(),
       },
     });
   } catch (err) {

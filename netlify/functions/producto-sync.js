@@ -1,4 +1,12 @@
-import { toE164Colombia, parseRecipients, sendBrevoEmail, upsertBrevoContact } from './lib/brevo.js';
+import {
+  toE164Colombia,
+  parseRecipients,
+  sendBrevoEmail,
+  upsertBrevoContact,
+  getBrevoContact,
+  acumularValor,
+  hoyISO,
+} from './lib/brevo.js';
 
 export const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -45,6 +53,13 @@ export const handler = async (event) => {
   // negocio no se enteraría del pedido. Peor aún, devolver error hace que Netlify
   // desactive el webhook tras 6 fallos seguidos y se pierdan TODOS los pedidos
   // siguientes en silencio — que fue justo lo que pasó el 2026-08-22.
+  // Se lee el contacto antes de escribirlo para ACUMULAR el historial en vez de
+  // sobrescribirlo: si no, cada pedido borra el anterior y no queda forma de saber
+  // qué ha comprado un cliente ni quiénes son los recurrentes.
+  const existente = await getBrevoContact({ apiKey, email });
+  const attrsPrevios = existente?.attributes || {};
+  const productoConVariante = presentacion ? `${producto} (${presentacion})` : producto;
+
   let errorContacto = null;
   try {
     await upsertBrevoContact({
@@ -54,7 +69,9 @@ export const handler = async (event) => {
       attributes: {
         NOMBRE: nombre,
         WHATSAPP: whatsappLead,
-        PRODUCTO_INTERES: producto,
+        PRODUCTO_INTERES: acumularValor(attrsPrevios.PRODUCTO_INTERES, productoConVariante),
+        PEDIDOS_TOTAL: (Number(attrsPrevios.PEDIDOS_TOTAL) || 0) + 1,
+        ULTIMO_PEDIDO: hoyISO(),
       },
     });
   } catch (err) {

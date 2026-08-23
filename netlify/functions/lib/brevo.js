@@ -51,6 +51,49 @@ export async function sendBrevoEmail({ apiKey, recipients, subject, htmlContent,
   }
 }
 
+// Busca un contacto por correo (el correo ES la identidad en Brevo). Devuelve null si
+// no existe todavía. Se usa para leer el historial antes de escribirlo: sin esto, cada
+// pedido SOBRESCRIBE el anterior y se pierde el rastro de qué ha comprado la persona.
+export async function getBrevoContact({ apiKey, email }) {
+  try {
+    const response = await fetch(`https://api.brevo.com/v3/contacts/${encodeURIComponent(email)}`, {
+      headers: { 'api-key': apiKey, Accept: 'application/json' },
+    });
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      console.warn('[brevo] No se pudo leer el contacto', email, response.status);
+      return null;
+    }
+    return await response.json();
+  } catch (err) {
+    // Nunca romper el flujo por no poder leer el historial: se sigue sin él.
+    console.warn('[brevo] Fallo al leer el contacto', email, err);
+    return null;
+  }
+}
+
+// Agrega un valor a una lista separada por " | ", sin repetirlo y sin crecer sin
+// límite (los atributos de texto de Brevo tienen tope de tamaño). El más reciente
+// queda al final.
+export function acumularValor(valorActual, nuevo, { maxItems = 12, maxLargo = 240 } = {}) {
+  if (!nuevo) return valorActual || '';
+  const previos = String(valorActual || '')
+    .split('|')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((s) => s !== nuevo);
+
+  let lista = [...previos, nuevo].slice(-maxItems);
+  while (lista.length > 1 && lista.join(' | ').length > maxLargo) lista = lista.slice(1);
+  return lista.join(' | ');
+}
+
+// Fecha de hoy en formato YYYY-MM-DD, que es lo que esperan los atributos de tipo
+// fecha de Brevo.
+export function hoyISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export async function upsertBrevoContact({ apiKey, listId, email, attributes }) {
   const enviar = (attrs) =>
     fetch('https://api.brevo.com/v3/contacts', {
