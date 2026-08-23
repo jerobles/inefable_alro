@@ -52,25 +52,47 @@ export async function sendBrevoEmail({ apiKey, recipients, subject, htmlContent,
 }
 
 export async function upsertBrevoContact({ apiKey, listId, email, attributes }) {
-  const response = await fetch('https://api.brevo.com/v3/contacts', {
-    method: 'POST',
-    headers: {
-      'api-key': apiKey,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify({
-      email,
-      attributes,
-      listIds: [Number(listId)],
-      updateEnabled: true,
-    }),
-  });
+  const enviar = (attrs) =>
+    fetch('https://api.brevo.com/v3/contacts', {
+      method: 'POST',
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        attributes: attrs,
+        listIds: [Number(listId)],
+        updateEnabled: true,
+      }),
+    });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    const err = new Error(`Brevo error ${response.status}: ${errText}`);
-    err.statusCode = 502;
-    throw err;
+  let response = await enviar(attributes);
+  if (response.ok) return { telefonoOmitido: false };
+
+  let errText = await response.text();
+
+  // Brevo trata los atributos de tipo teléfono (WHATSAPP) como identificadores
+  // ÚNICOS: si ese número ya está en otro contacto, rechaza el alta entera con
+  // 400 duplicate_parameter. Pasa de verdad — por ejemplo, alguien que se inscribió
+  // a un taller y luego pide un producto con otro correo, o dos personas de una
+  // misma familia que comparten número.
+  // Preferimos guardar el contacto SIN el teléfono antes que perder el lead: el
+  // número igual viaja en el correo de aviso interno, con su botón de WhatsApp.
+  if (response.status === 400 && errText.includes('duplicate_parameter') && attributes?.WHATSAPP) {
+    const { WHATSAPP, ...sinTelefono } = attributes;
+    response = await enviar(sinTelefono);
+    if (response.ok) {
+      console.warn(
+        `[brevo] El WhatsApp de ${email} ya estaba en otro contacto; se guardó sin ese campo (el número va igual en el correo de aviso).`
+      );
+      return { telefonoOmitido: true };
+    }
+    errText = await response.text();
   }
+
+  const err = new Error(`Brevo error ${response.status}: ${errText}`);
+  err.statusCode = 502;
+  throw err;
 }

@@ -40,6 +40,12 @@ export const handler = async (event) => {
       data.entrega
     ] || 'Otra ciudad — a coordinar por WhatsApp';
 
+  // El registro en el CRM se intenta, pero NO puede ser un punto único de falla: si
+  // Brevo rechaza el contacto y cortáramos acá, no se enviaría ningún correo y el
+  // negocio no se enteraría del pedido. Peor aún, devolver error hace que Netlify
+  // desactive el webhook tras 6 fallos seguidos y se pierdan TODOS los pedidos
+  // siguientes en silencio — que fue justo lo que pasó el 2026-08-22.
+  let errorContacto = null;
   try {
     await upsertBrevoContact({
       apiKey,
@@ -52,12 +58,9 @@ export const handler = async (event) => {
       },
     });
   } catch (err) {
-    console.error('[producto-sync] Fallo al llamar a Brevo', err);
-    return { statusCode: err.statusCode || 500, body: err.message };
+    errorContacto = err;
+    console.error('[producto-sync] No se pudo guardar el contacto en Brevo, se continúa con los correos', err);
   }
-
-  // A partir de aquí el contacto ya quedó guardado en Brevo (lo importante).
-  // Los correos son un plus: si fallan, no deben afectar la respuesta del webhook.
 
   await sendBrevoEmail({
     apiKey,
@@ -94,11 +97,15 @@ export const handler = async (event) => {
         <p><strong>Correo:</strong> ${email}</p>
         <p><strong>WhatsApp:</strong> ${whatsappLead}</p>
         ${waLink ? `<p><a href="${waLink}" style="display:inline-block;background:#25D366;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">Escríbele por WhatsApp →</a></p>` : ''}
+        ${errorContacto ? `<p style="margin-top:20px;padding:12px;background:#fff4e5;border-left:3px solid #c98a45;font-size:13px;">⚠️ Este pedido <strong>no se pudo guardar en Brevo</strong>, así que no aparecerá en la lista de contactos. Los datos de arriba son la única copia — agrégalo a mano si lo necesitas. Motivo: ${errorContacto.message}</p>` : ''}
       `,
     });
   } else {
     console.warn('[producto-sync] BUSINESS_NOTIFY_EMAIL no configurado, se omite el correo de notificación a la empresa');
   }
 
-  return { statusCode: 200, body: 'ok' };
+  // Siempre 200: los correos ya salieron y el negocio está enterado. Devolver error
+  // acá solo lograría que Netlify desactive el webhook y se pierdan los pedidos
+  // siguientes. El fallo del CRM queda en los logs y avisado dentro del correo.
+  return { statusCode: 200, body: errorContacto ? 'ok (contacto no guardado en Brevo)' : 'ok' };
 };
