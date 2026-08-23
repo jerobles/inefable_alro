@@ -58,7 +58,7 @@ export const handler = async (event) => {
       email,
       attributes: {
         NOMBRE: nombre,
-        WHATSAPP: whatsappLead,
+        CELULAR: whatsappLead,
         TALLER: acumularValor(attrsPrevios.TALLER, taller),
         TURNO_PREFERENCIA: data.turno || '',
         ULTIMO_PEDIDO: hoyISO(),

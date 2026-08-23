@@ -72,20 +72,46 @@ export async function getBrevoContact({ apiKey, email }) {
   }
 }
 
-// Agrega un valor a una lista separada por " | ", sin repetirlo y sin crecer sin
-// límite (los atributos de texto de Brevo tienen tope de tamaño). El más reciente
-// queda al final.
+// Acumula un valor en una lista " | " CONTANDO las repeticiones: si alguien vuelve a
+// pedir el mismo producto, eso es justamente el dato valioso (cuál le gusta más), así
+// que queda como "Maracuyá x3 | Ramo de Flores". El "x1" no se escribe, para que se
+// lea limpio.
+//
+// El campo no puede crecer sin límite (los atributos de texto de Brevo tienen tope),
+// así que al pasarse se recortan primero los de MENOR conteo — nunca los favoritos —
+// y jamás el que se acaba de agregar.
 export function acumularValor(valorActual, nuevo, { maxItems = 12, maxLargo = 240 } = {}) {
   if (!nuevo) return valorActual || '';
-  const previos = String(valorActual || '')
+
+  const items = String(valorActual || '')
     .split('|')
     .map((s) => s.trim())
     .filter(Boolean)
-    .filter((s) => s !== nuevo);
+    .map((s) => {
+      const m = s.match(/^(.*?)\s+x(\d+)$/);
+      return m ? { nombre: m[1].trim(), conteo: Number(m[2]) } : { nombre: s, conteo: 1 };
+    });
 
-  let lista = [...previos, nuevo].slice(-maxItems);
-  while (lista.length > 1 && lista.join(' | ').length > maxLargo) lista = lista.slice(1);
-  return lista.join(' | ');
+  const yaEstaba = items.find((i) => i.nombre === nuevo);
+  if (yaEstaba) yaEstaba.conteo += 1;
+  else items.push({ nombre: nuevo, conteo: 1 });
+
+  const render = (lista) =>
+    lista.map((i) => (i.conteo > 1 ? `${i.nombre} x${i.conteo}` : i.nombre)).join(' | ');
+
+  let lista = items;
+  while (lista.length > 1 && (lista.length > maxItems || render(lista).length > maxLargo)) {
+    // Candidatos a salir: todos menos el recién tocado.
+    let idx = -1;
+    for (let i = 0; i < lista.length; i++) {
+      if (lista[i].nombre === nuevo) continue;
+      if (idx === -1 || lista[i].conteo < lista[idx].conteo) idx = i;
+    }
+    if (idx === -1) break;
+    lista = lista.filter((_, i) => i !== idx);
+  }
+
+  return render(lista);
 }
 
 // Fecha de hoy en formato YYYY-MM-DD, que es lo que esperan los atributos de tipo
@@ -112,27 +138,39 @@ export async function upsertBrevoContact({ apiKey, listId, email, attributes }) 
     });
 
   let response = await enviar(attributes);
-  if (response.ok) return { telefonoOmitido: false };
+  if (response.ok) return { camposOmitidos: [] };
 
   let errText = await response.text();
 
-  // Brevo trata los atributos de tipo teléfono (WHATSAPP) como identificadores
-  // ÚNICOS: si ese número ya está en otro contacto, rechaza el alta entera con
-  // 400 duplicate_parameter. Pasa de verdad — por ejemplo, alguien que se inscribió
-  // a un taller y luego pide un producto con otro correo, o dos personas de una
-  // misma familia que comparten número.
-  // Preferimos guardar el contacto SIN el teléfono antes que perder el lead: el
-  // número igual viaja en el correo de aviso interno, con su botón de WhatsApp.
-  if (response.status === 400 && errText.includes('duplicate_parameter') && attributes?.WHATSAPP) {
-    const { WHATSAPP, ...sinTelefono } = attributes;
-    response = await enviar(sinTelefono);
-    if (response.ok) {
-      console.warn(
-        `[brevo] El WhatsApp de ${email} ya estaba en otro contacto; se guardó sin ese campo (el número va igual en el correo de aviso).`
-      );
-      return { telefonoOmitido: true };
+  // Brevo tiene atributos RESERVADOS (WHATSAPP, SMS…) que usa como identificadores
+  // de contacto, aunque su tipo diga "Texto". Si el valor ya está en otro contacto,
+  // rechaza el alta ENTERA con 400 duplicate_parameter y devuelve cuáles chocaron.
+  // Por eso el teléfono se guarda en `CELULAR` (atributo propio, sin esa regla); esto
+  // queda como red de seguridad por si algún día se vuelve a usar uno reservado.
+  //
+  // Preferimos guardar el contacto sin los campos que chocan antes que perder el
+  // lead entero: los datos completos viajan igual en el correo de aviso interno.
+  if (response.status === 400 && errText.includes('duplicate_parameter')) {
+    let choques = [];
+    try {
+      choques = JSON.parse(errText)?.metadata?.duplicate_identifiers || [];
+    } catch {
+      /* si no viene el detalle, no hay nada que quitar */
     }
-    errText = await response.text();
+    const quitables = choques.filter((c) => c in (attributes || {}));
+
+    if (quitables.length > 0) {
+      const limpios = { ...attributes };
+      quitables.forEach((c) => delete limpios[c]);
+      response = await enviar(limpios);
+      if (response.ok) {
+        console.warn(
+          `[brevo] ${quitables.join(', ')} de ${email} ya estaba(n) en otro contacto; se guardó sin ese(os) campo(s).`
+        );
+        return { camposOmitidos: quitables };
+      }
+      errText = await response.text();
+    }
   }
 
   const err = new Error(`Brevo error ${response.status}: ${errText}`);
