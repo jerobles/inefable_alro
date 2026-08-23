@@ -140,18 +140,30 @@ const metaDescripcion =
         </video>
       </div>
 
-      <div class="galeria__grid">
-        {fotosGaleria.map((n) => (
-          <figure class="galeria__item reveal">
-            <img
-              src={`/images/talleres/taller-${String(n).padStart(2, '0')}.webp`}
-              alt={`Asistentes al taller de velas de Inefable ALRO (${n})`}
-              width="1080"
-              height="1350"
-              loading="lazy"
-            />
-          </figure>
-        ))}
+      <div class="galeria__carrusel-wrap reveal">
+        <button class="galeria__flecha galeria__flecha--prev" data-galeria-prev aria-label="Ver fotos anteriores">‹</button>
+
+        <div
+          class="galeria__carrusel"
+          data-galeria-scroller
+          role="region"
+          aria-label="Fotos de talleres pasados. Desliza para ver más."
+          tabindex="0"
+        >
+          {fotosGaleria.map((n) => (
+            <figure class="galeria__item">
+              <img
+                src={`/images/talleres/taller-${String(n).padStart(2, '0')}.webp`}
+                alt={`Asistentes al taller de velas de Inefable ALRO (${n})`}
+                width="1080"
+                height="1350"
+                loading="lazy"
+              />
+            </figure>
+          ))}
+        </div>
+
+        <button class="galeria__flecha galeria__flecha--next" data-galeria-next aria-label="Ver más fotos">›</button>
       </div>
 
       <div class="galeria__cta reveal">
@@ -329,9 +341,33 @@ const metaDescripcion =
       });
     }
 
+    function initGaleriaCarrusel() {
+      const scroller = document.querySelector('[data-galeria-scroller]') as HTMLElement | null;
+      const prev = document.querySelector('[data-galeria-prev]') as HTMLButtonElement | null;
+      const next = document.querySelector('[data-galeria-next]') as HTMLButtonElement | null;
+      if (!scroller || !prev || !next) return;
+
+      // Avanza el ancho visible menos un poco, para que quede una foto de referencia.
+      const paso = () => Math.max(scroller.clientWidth * 0.8, 200);
+
+      prev.addEventListener('click', () => scroller.scrollBy({ left: -paso(), behavior: 'smooth' }));
+      next.addEventListener('click', () => scroller.scrollBy({ left: paso(), behavior: 'smooth' }));
+
+      // Oculta la flecha del extremo al que ya se llegó.
+      const actualizarFlechas = () => {
+        const max = scroller.scrollWidth - scroller.clientWidth;
+        prev.disabled = scroller.scrollLeft <= 4;
+        next.disabled = scroller.scrollLeft >= max - 4;
+      };
+      scroller.addEventListener('scroll', actualizarFlechas, { passive: true });
+      window.addEventListener('resize', actualizarFlechas);
+      actualizarFlechas();
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       safe(initCursoForm, 'initCursoForm');
       safe(initTallerCtas, 'initTallerCtas');
+      safe(initGaleriaCarrusel, 'initGaleriaCarrusel');
     });
   </script>
 
@@ -395,13 +431,26 @@ const metaDescripcion =
       border: 1px solid var(--line);
       background: var(--bg-3);
     }
-    .galeria__grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
+    /* Carrusel con scroll nativo + scroll-snap: el deslizamiento táctil y el
+       teclado funcionan solos, sin librerías. Las flechas solo empujan ese scroll. */
+    .galeria__carrusel-wrap { position: relative; }
+    .galeria__carrusel {
+      display: flex;
       gap: 14px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      /* Sangría para que las fotos "salgan" del borde de la pantalla en celular */
+      padding-bottom: 6px;
+      scrollbar-width: none;
     }
+    .galeria__carrusel::-webkit-scrollbar { display: none; }
+    .galeria__carrusel:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
     .galeria__item {
       margin: 0;
+      flex: 0 0 auto;
+      width: calc((100% - 3 * 14px) / 4);
+      scroll-snap-align: start;
       overflow: hidden;
       border-radius: var(--radius);
       border: 1px solid var(--line);
@@ -414,6 +463,32 @@ const metaDescripcion =
       transition: transform .5s ease;
     }
     .galeria__item:hover img { transform: scale(1.06); }
+
+    .galeria__flecha {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 2;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: rgba(22, 17, 12, 0.85);
+      backdrop-filter: blur(6px);
+      color: var(--cream);
+      font-size: 1.6rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .25s ease, border-color .25s ease, opacity .25s ease;
+    }
+    .galeria__flecha:hover { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+    .galeria__flecha[disabled] { opacity: 0; pointer-events: none; }
+    .galeria__flecha--prev { left: -18px; }
+    .galeria__flecha--next { right: -18px; }
+
     .galeria__cta { margin-top: 40px; text-align: center; }
 
     .curso-form__grid {
@@ -485,12 +560,16 @@ const metaDescripcion =
     @media (max-width: 900px) {
       .curso-talleres__grid { grid-template-columns: 1fr; }
       .curso-form__grid { grid-template-columns: 1fr; }
-      .galeria__grid { grid-template-columns: repeat(3, 1fr); }
+      .galeria__item { width: calc((100% - 2 * 14px) / 3); }
+      /* Sin flechas en táctil: se desliza con el dedo */
+      .galeria__flecha { display: none; }
     }
     @media (max-width: 600px) {
       .galeria { padding: 64px 0; }
-      .galeria__grid { grid-template-columns: 1fr 1fr; gap: 10px; }
       .galeria__video { max-width: 100%; }
+      .galeria__carrusel { gap: 10px; }
+      /* 1.6 fotos a la vista: la mitad cortada le avisa al ojo que hay más */
+      .galeria__item { width: 62%; }
     }
   </style>
 </Layout>
