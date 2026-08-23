@@ -69,6 +69,11 @@ export const handler = async (event) => {
       attributes: {
         NOMBRE: nombre,
         CELULAR: whatsappLead,
+        // Se intenta llenar tambien el campo reservado de Brevo para no perder sus
+        // funciones de WhatsApp. Si el numero ya esta en otro contacto, Brevo lo
+        // rechaza y upsertBrevoContact reintenta quitando SOLO ese campo: CELULAR
+        // conserva el numero igual, asi que nunca se pierde el dato ni el contacto.
+        WHATSAPP: whatsappLead,
         PRODUCTO_INTERES: acumularValor(attrsPrevios.PRODUCTO_INTERES, productoConVariante),
         PEDIDOS_TOTAL: (Number(attrsPrevios.PEDIDOS_TOTAL) || 0) + 1,
         ULTIMO_PEDIDO: hoyISO(),

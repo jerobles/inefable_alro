@@ -24,12 +24,27 @@ export async function sendBrevoEmail({ apiKey, recipients, subject, htmlContent,
   }
   if (!recipients || recipients.length === 0) return;
 
+  // Sin un documento HTML completo con <meta charset="utf-8">, los clientes de correo
+  // asumen latin-1 y las tildes y eñes se ven como "Arom�tica" / "Maracuy�".
+  // (Reportado en producción el 2026-08-22.)
+  const htmlCompleto = /<html[\s>]/i.test(htmlContent)
+    ? htmlContent
+    : `<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:24px;background:#f4efe6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#201a12;line-height:1.6;">
+<div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;padding:28px;">
+${htmlContent}
+</div>
+</body>
+</html>`;
+
   try {
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
         'api-key': apiKey,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
         Accept: 'application/json',
       },
       body: JSON.stringify({
@@ -37,7 +52,7 @@ export async function sendBrevoEmail({ apiKey, recipients, subject, htmlContent,
         to: recipients,
         ...(bcc && bcc.length > 0 ? { bcc } : {}),
         subject,
-        htmlContent,
+        htmlContent: htmlCompleto,
       }),
     });
 
@@ -136,6 +151,11 @@ export async function upsertBrevoContact({ apiKey, listId, email, attributes }) 
         updateEnabled: true,
       }),
     });
+
+  // Deja constancia de lo que se envía: si un atributo queda vacío en Brevo pese a un
+  // 200, comparar este log con lo que muestra el panel dice si el problema es el valor
+  // que mandamos o el tipo con el que está creado el atributo del otro lado.
+  console.log('[brevo] atributos enviados para', email, JSON.stringify(attributes));
 
   let response = await enviar(attributes);
   if (response.ok) return { camposOmitidos: [] };
