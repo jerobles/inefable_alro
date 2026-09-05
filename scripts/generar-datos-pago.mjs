@@ -6,7 +6,7 @@
 // el usuario no tiene que acordarse de nada: cada vez que edita un taller o producto
 // desde /admin y se publica, este archivo se regenera solo con los datos más recientes.
 //
-// Los .json generados en netlify/functions/data/ NO se suben a git (están en
+// Los archivos generados en netlify/functions/data/ NO se suben a git (están en
 // .gitignore) — son un derivado del build, no la fuente de la verdad.
 
 import fs from 'node:fs';
@@ -49,16 +49,29 @@ const productos = leerColeccion('productos')
     variantes: (p.variantes || []).map((v) => ({ presentacion: v.presentacion, precio: v.precio })),
   }));
 
-// Se escriben como módulos .js (no .json) a propósito: así las funciones los traen con
-// un `import` normal y el bundler de Netlify los mete DENTRO del paquete de la función.
+// Se escriben como módulos CommonJS (.cjs con module.exports) a propósito.
+//
 // Leerlos del disco en tiempo de ejecución no funciona: Netlify transpila las funciones
 // a CommonJS, donde `import.meta.url` es inválido y `__dirname` ya está declarado —
 // ambos caminos tumbaron la función en producción el 2026-08-22.
+//
+// Y escribirlos como módulos ESM (.js con `export default`) tampoco: se creía que el
+// bundler los metía DENTRO del paquete de la función, pero NO lo hace — los deja fuera
+// y los carga con require() en tiempo de ejecución. Ahí Node devuelve el módulo
+// envuelto en su namespace, el envoltorio de interop de esbuild lo envuelve otra vez,
+// y `productos.default` termina siendo un objeto en vez del arreglo:
+//   TypeError: import_productos.default.find is not a function
+// (reventó en producción el 2026-09-05, apenas se configuró MP_ACCESS_TOKEN y el
+// código alcanzó a llegar a esa línea por primera vez).
+//
+// CommonJS funciona en los DOS escenarios: si el bundler lo inlinea, el interop deja el
+// arreglo en .default; si lo deja afuera, require() devuelve el arreglo directo. Aun
+// así, las funciones normalizan lo que reciben — ver la nota en pago-producto.js.
 const outDir = path.join(ROOT, 'netlify', 'functions', 'data');
 const banner = '// Generado por scripts/generar-datos-pago.mjs — no editar a mano.\n';
 fs.mkdirSync(outDir, { recursive: true });
-fs.writeFileSync(path.join(outDir, 'talleres.js'), `${banner}export default ${JSON.stringify(talleres, null, 2)};\n`);
-fs.writeFileSync(path.join(outDir, 'productos.js'), `${banner}export default ${JSON.stringify(productos, null, 2)};\n`);
+fs.writeFileSync(path.join(outDir, 'talleres.cjs'), `${banner}module.exports = ${JSON.stringify(talleres, null, 2)};\n`);
+fs.writeFileSync(path.join(outDir, 'productos.cjs'), `${banner}module.exports = ${JSON.stringify(productos, null, 2)};\n`);
 
 console.log(
   `[generar-datos-pago] ${talleres.length} taller(es) y ${productos.length} producto(s) exportados para las funciones de pago.`

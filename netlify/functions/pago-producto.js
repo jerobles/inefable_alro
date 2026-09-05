@@ -1,6 +1,19 @@
 import { crearPreferencia, siteUrl } from './lib/mercadopago.js';
-// Ver la nota en pago-taller.js: se importa el módulo generado, no se lee del disco.
-import productos from './data/productos.js';
+import productosRaw from './data/productos.cjs';
+
+const NOMBRE = 'pago-producto';
+// El archivo de precios se genera en el build (scripts/generar-datos-pago.mjs). Se
+// importa, no se lee del disco, y se normaliza a un arreglo antes de usarlo: según cómo
+// lo empaquete Netlify, el mismo `import` puede llegar como el arreglo directo o
+// envuelto en un objeto con .default. Confiar en una sola de esas formas tumbó la
+// función en producción (2026-09-05). Ver el detalle en generar-datos-pago.mjs.
+function comoLista(mod) {
+  if (Array.isArray(mod)) return mod;
+  if (Array.isArray(mod?.default)) return mod.default;
+  console.error('[%s] Los datos de precios no llegaron como lista:', NOMBRE, typeof mod);
+  return [];
+}
+const productos = comoLista(productosRaw);
 
 // Por ahora el pago en línea solo aplica a entregas en Bogotá (domicilio con tarifa
 // fija incluida en el cobro). Pedidos a otras ciudades siguen el flujo de siempre:

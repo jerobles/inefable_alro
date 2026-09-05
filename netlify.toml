@@ -5,8 +5,10 @@
 [functions]
   directory = "netlify/functions"
   # Los datos de precios se generan en el build (scripts/generar-datos-pago.mjs) como
-  # módulos .js que las funciones importan, así que el bundler los mete solo — no hace
-  # falta included_files.
+  # módulos .cjs que las funciones importan. El bundler NO siempre los inlinea (a veces
+  # los deja afuera y los carga con require en ejecución), por eso se declaran acá: así
+  # el archivo viaja junto a la función pase lo que pase.
+  included_files = ["netlify/functions/data/*.cjs"]
 
 [[headers]]
   for = "/*"

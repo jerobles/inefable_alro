@@ -50,10 +50,10 @@ src/
     privacidad.astro
     terminos.astro
 scripts/
-  generar-datos-pago.mjs      ← corre antes de "astro build" (ver package.json): exporta precios de talleres/productos a netlify/functions/data/*.json, para que las funciones de pago calculen el monto sin confiar en lo que mande el navegador
+  generar-datos-pago.mjs      ← corre antes de "astro build" (ver package.json): exporta precios de talleres/productos a netlify/functions/data/*.cjs, para que las funciones de pago calculen el monto sin confiar en lo que mande el navegador
 netlify/
   functions/
-    data/*.json                ← generado en cada build por el script de arriba, NO se sube a git (.gitignore)
+    data/*.cjs                 ← generado en cada build por el script de arriba, NO se sube a git (.gitignore). CommonJS a propósito, ver la convención de "Funciones de Netlify" más abajo
     lib/brevo.js              ← helpers compartidos de Brevo (sendBrevoEmail con bcc opcional, parseRecipients, toE164Colombia, upsertBrevoContact)
     lib/mercadopago.js          ← crearPreferencia() — arma el link de pago (fetch directo a la API de Mercado Pago, sin SDK)
     brevo-sync.js               ← webhook del form del taller: crea/actualiza contacto en Brevo + 2 correos (confirmación al lead + notificación interna)
@@ -69,7 +69,7 @@ public/
   videos/banner-animado.mp4     ← hero del inicio (10s, 1280x720, sin audio, 2.6MB → 540KB)
   videos/taller-experiencia.mp4 ← video de la galería de /curso (30s, con audio, preload="none" para que solo pese si lo reproducen)
   admin/                      ← index.html + config.yml (Decap CMS: colecciones "blog", "talleres" y "productos")
-netlify.toml                 ← [functions] directory + included_files para empaquetar netlify/functions/data/*.json junto con las funciones
+netlify.toml                 ← [functions] directory + included_files para empaquetar netlify/functions/data/*.cjs junto con las funciones
 astro.config.mjs             ← incluye integración @astrojs/sitemap (fijar en v3.2.1, versiones más nuevas rompen con Astro 4)
 ```
 
@@ -112,10 +112,16 @@ Proyecto compila sin errores (`npm run build`) y **ya está desplegado y en vivo
      - **Resto de Bogotá:** domicilio $15.000, pago en línea. Variable `ENVIO_BOGOTA_RESTO_COP` (default `15000`) — **tarifas confirmadas por el usuario el 2026-08-22**, ya no son un placeholder.
      - **Otra ciudad:** sigue el flujo manual de siempre (Netlify Forms → WhatsApp), la transportadora se cotiza caso por caso — no pasa por Mercado Pago.
      - Productos "Por cotización" (sin precio fijo, ej. recordatorios) nunca intentan pago en línea, sin importar la zona — se detecta tanto en el cliente como en la función (doble chequeo).
-   - **Resiliencia:** si `MP_ACCESS_TOKEN` no está configurado (como ahora) o la llamada a Mercado Pago falla por lo que sea, el formulario NO se rompe — cae de vuelta al mensaje de siempre ("te contactaremos por WhatsApp"), porque el registro en Brevo ya se disparó antes de intentar el pago. Verificado con un dry-run local (`fetch` simulado) cubriendo: taller válido, taller inválido, Bogotá con envío, Bogotá gratis, producto "por cotización" (debe rechazar) y sin token configurado — los 6 casos se comportan como se espera.
+   - **Resiliencia:** si `MP_ACCESS_TOKEN` no está configurado o la llamada a Mercado Pago falla por lo que sea, el formulario NO se rompe — cae de vuelta al mensaje de siempre ("te contactaremos por WhatsApp"), porque el registro en Brevo ya se disparó antes de intentar el pago. Verificado con un dry-run local (`fetch` simulado) cubriendo: taller válido, taller inválido, Bogotá con envío, Bogotá gratis, producto "por cotización" (debe rechazar) y sin token configurado — los 6 casos se comportan como se espera.
+   - **Credenciales (aclarado 2026-09-05).** Mercado Pago **eliminó el entorno sandbox**: no hay URL de pruebas aparte, todo corre contra la API de producción y lo único que decide si un pago es real o simulado es **cuál Access Token** está en `MP_ACCESS_TOKEN`.
+     - Por eso el código usa **`init_point`, nunca `sandbox_init_point`** — ese campo ya no funciona (link vacío o página de error). No reintroducirlo.
+     - Las credenciales de prueba **también empiezan con `APP_USR-`**: el prefijo NO distingue prueba de producción, lo hace la pestaña del panel de donde se copiaron. (`TEST-` sigue existiendo para otras integraciones, pero no es la señal.)
+     - Del par que da el panel, la que va en `MP_ACCESS_TOKEN` es el **Access Token**, no la Public Key (esa es para formularios de tarjeta en el navegador, que esta integración no usa).
+     - El `TEST...` que aparece aparte es el **usuario de prueba** (cuenta falsa para loguearse en el checkout), no una credencial.
+   - **Estado (2026-09-05):** token de **prueba** ya configurado en Netlify por el usuario. Pago de prueba de punta a punta todavía **sin confirmar**.
    - **Pendiente del usuario:**
-     1. Conseguir el **Access Token de Mercado Pago** del cliente (panel de desarrolladores, misma cuenta del curso) — se puede empezar con el de **prueba** para hacer un pago de prueba real de punta a punta antes de pasar a producción.
-     2. Configurar `MP_ACCESS_TOKEN` en Netlify con ese valor.
+     1. Completar el pago de prueba de punta a punta en `/tienda` (zona Bogotá, producto con precio fijo) y luego cambiar el valor de `MP_ACCESS_TOKEN` por el de producción.
+     2. Para probar el pago del **taller** hace falta crear uno con fecha futura desde `/admin` — `/curso` filtra los vencidos, y los dos cargados (22 y 29 de agosto) ya pasaron, así que la página está mostrando el estado vacío.
      3. Confirmar que `ENVIO_BOGOTA_RESTO_COP` ($15.000) sigue vigente al momento de publicar (puede cambiar sin tocar código, solo la variable de entorno — eso sí, redesplegar para que el texto del formulario y el cobro real queden sincronizados).
    - **No incluido en este alcance (posible mejora futura):** un webhook de Mercado Pago que marque automáticamente el contacto como "pagado" en Brevo — hoy la confirmación del pago solo se ve en el panel de Mercado Pago, no en Brevo.
 
@@ -200,10 +206,13 @@ npm run build       # verificar que compila antes de dar por terminado un cambio
 - **Funciones de Netlify: no leer archivos del disco en tiempo de ejecución.** Netlify empaqueta las funciones con esbuild y las transpila a **CommonJS**, así que los dos idiomas obvios para ubicar un archivo vecino fallan **solo en producción** (HTTP 502, el código compila perfecto en local):
   - `const __dirname = path.dirname(fileURLToPath(import.meta.url))` → `SyntaxError: Identifier '__dirname' has already been declared` (el bundler ya inyecta uno).
   - `new URL('./data/x.json', import.meta.url)` → `TypeError: Invalid URL` (en CJS `import.meta.url` no es válido).
-  - **Lo que sí funciona:** generar los datos como un **módulo `.js`** (`export default [...]`) e `import`arlo normalmente — el bundler lo inlinea dentro del paquete de la función. Así quedó `scripts/generar-datos-pago.mjs` + `netlify/functions/data/*.js`.
+  - `export default [...]` en un **módulo ESM `.js`** → `TypeError: import_productos.default.find is not a function`. Se creía que el bundler inlineaba ese archivo dentro del paquete de la función; **no lo hace**: lo deja afuera y lo carga con `require()` en ejecución. Ahí Node devuelve el *namespace* del módulo, el envoltorio de interop de esbuild (`__toESM`) lo envuelve otra vez, y `datos.default` termina siendo un objeto en vez del arreglo.
+  - **Lo que sí funciona:** generar los datos como **CommonJS** (`.cjs` con `module.exports = [...]`) e `import`arlos normalmente. Sirve en los dos escenarios: si el bundler lo inlinea, el interop deja el arreglo en `.default`; si lo deja afuera, `require()` devuelve el arreglo directo. Además se declara en `included_files` (netlify.toml) y las funciones **normalizan** lo que reciben con un helper `comoLista()`, para que un cambio de empaquetado no las vuelva a tumbar en silencio.
+  - **Por qué tardó un mes en aparecer:** el `.find()` está DESPUÉS del chequeo de `MP_ACCESS_TOKEN`. Mientras no hubo token, la función salía antes de llegar ahí y el bug fue invisible. Reventó el 2026-09-05, el mismo día que se configuró el token. Lección: un dry-run que no ejerce el camino feliz completo no prueba nada de ese camino.
   - **Cómo probarlo antes de publicar** (un dry-run del código fuente ESM NO detecta nada de esto): empaquetar con esbuild igual que Netlify y ejecutar el bundle resultante:
     ```bash
     ./node_modules/.bin/esbuild netlify/functions/pago-taller.js --bundle --platform=node --target=node20 --format=cjs --outfile=/tmp/f.cjs && node -e "require('/tmp/f.cjs')"
     ```
-  - Mordió dos veces seguidas el 2026-08-22 en `pago-taller.js` y `pago-producto.js`.
+  - **Probar los DOS escenarios de empaquetado**, porque el bundle local no se comporta igual que el de Netlify: una vez normal (datos inlineados) y otra con `--external:./data/productos.cjs --external:./data/talleres.cjs`, copiando `data/` junto al bundle y un `package.json` con `{"type":"module"}` al lado. El segundo es el que reproduce producción.
+  - Mordió tres veces: 2026-08-22 en `pago-taller.js` y `pago-producto.js` (rutas en disco), y 2026-09-05 en ambos otra vez (forma del módulo importado).
 - Atributos HTML estáticos (`pattern="..."`, etc.) escritos directo en un `.astro`: Astro se come una barra invertida simple al compilar (`\-` → `-`, `\.` → `.`). Si el atributo necesita un carácter escapado de verdad, hay que escribir doble barra en el código fuente (`\\-`, `\\.`) para que quede una sola en el HTML final. Ya mordió dos veces: el patrón de validación de correo lo tenía mal en `curso.astro` y `Footer.astro` (guion sin escapar dentro de `[...]`, inválido bajo el modo "v"/unicode-sets de regex que usan los navegadores nuevos — tiraba una excepción de JS real al validar el formulario, no solo un problema cosmético).
