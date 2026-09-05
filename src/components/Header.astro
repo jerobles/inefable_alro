@@ -15,9 +15,19 @@ const links = [
       <span>Inefable <em>ALRO</em></span>
     </a>
 
-    <button class="site-header__toggle" data-nav-toggle aria-label="Abrir menú" aria-expanded="false">
-      <span></span><span></span><span></span>
-    </button>
+    <div class="site-header__acciones">
+      <button class="site-header__carrito" data-carrito-abrir aria-label="Ver mi pedido">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+          <path d="M6 7h12l-1 12H7L6 7z" stroke-linejoin="round" />
+          <path d="M9 7a3 3 0 0 1 6 0" stroke-linecap="round" />
+        </svg>
+        <span class="site-header__contador" data-carrito-contador hidden>0</span>
+      </button>
+
+      <button class="site-header__toggle" data-nav-toggle aria-label="Abrir menú" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
 
     <nav class="site-header__nav" data-nav-menu>
       {links.map((link) => (
@@ -86,6 +96,46 @@ const links = [
   /* El "ghost" del catálogo compite menos visualmente que el ámbar del taller,
      pero queda al mismo nivel jerárquico: son las dos cosas que se venden. */
   .site-header__ctas .btn-ghost { border-color: rgba(243,234,217,0.28); }
+
+  /* El carrito queda siempre visible (también en móvil, fuera del menú lateral):
+     es el acceso al pedido en curso, no un enlace de navegación más. */
+  .site-header__acciones {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    /* En el HTML va antes del menú (para que en móvil quede junto a la hamburguesa),
+       pero visualmente pertenece a la derecha, con los botones de acción. */
+    order: 3;
+  }
+  .site-header__carrito {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--cream-2);
+    cursor: pointer;
+    padding: 8px;
+    transition: color .2s ease;
+  }
+  .site-header__carrito:hover { color: var(--accent); }
+  .site-header__contador {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 0.65rem;
+    font-weight: 500;
+    line-height: 17px;
+    text-align: center;
+  }
+  .site-header__contador[hidden] { display: none; }
 
   .site-header__toggle {
     display: none;

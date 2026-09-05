@@ -5,10 +5,11 @@ export default defineConfig({
   site: 'https://inefablealro.com',
   integrations: [
     sitemap({
-      // /pago-confirmado solo tiene sentido llegando desde Mercado Pago tras pagar.
-      // Fuera del sitemap para que Google no la indexe y nadie caiga ahí desde una
-      // búsqueda (la página además lleva su propio noindex).
-      filter: (page) => !page.includes('/pago-confirmado'),
+      // Páginas que solo tienen sentido dentro de una compra en curso: /pago-confirmado
+      // se llega desde Mercado Pago tras pagar, y /carrito está vacía para cualquiera
+      // que no venga de agregar productos. Fuera del sitemap para que Google no las
+      // indexe y nadie caiga ahí desde una búsqueda (ambas llevan su propio noindex).
+      filter: (page) => !page.includes('/pago-confirmado') && !page.includes('/carrito'),
     }),
   ],
 });

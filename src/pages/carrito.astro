@@ -1,0 +1,312 @@
+---
+import Layout from '../layouts/Layout.astro';
+import WhatsAppBanner from '../components/WhatsAppBanner.astro';
+
+// Mismos valores por defecto que netlify/functions/pago-producto.js y FormPedido.astro.
+const envioNorte = Number(import.meta.env.ENVIO_BOGOTA_NORTE_COP) || 0;
+const envioResto = Number(import.meta.env.ENVIO_BOGOTA_RESTO_COP) || 15000;
+const formatPrecio = (n: number) => n.toLocaleString('es-CO');
+---
+
+<Layout
+  title="Tu pedido"
+  description="Revisa los productos de tu pedido de Inefable ALRO antes de continuar."
+  noindex
+>
+  <section class="pedido-pagina">
+    <div class="container">
+      <span class="kicker reveal">Tu pedido</span>
+      <h1 class="reveal">Revisa lo que llevas</h1>
+
+      <div class="pedido-pagina__grid" data-pedido-grid hidden>
+        <div class="pedido-pagina__lista" data-pedido-lista></div>
+
+        <aside class="pedido-pagina__resumen">
+          <h2>Resumen</h2>
+
+          <label class="pedido-pagina__zona">
+            ¿Dónde lo entregamos?
+            <select data-pedido-zona>
+              <option value="bogota-norte">Norte de Bogotá — envío gratis</option>
+              <option value="bogota-resto">Resto de Bogotá — ${formatPrecio(envioResto)}</option>
+              <option value="otra">Otra ciudad — se cotiza el envío</option>
+            </select>
+          </label>
+
+          <dl class="pedido-pagina__cuentas">
+            <div><dt>Subtotal</dt><dd data-pedido-subtotal></dd></div>
+            <div><dt>Envío</dt><dd data-pedido-envio></dd></div>
+            <div class="pedido-pagina__total"><dt>Total</dt><dd data-pedido-total></dd></div>
+          </dl>
+
+          <p class="pedido-pagina__aviso" data-pedido-aviso hidden></p>
+
+          <a class="btn btn-primary pedido-pagina__cta" data-pedido-whatsapp href="#">
+            Enviar mi pedido por WhatsApp
+          </a>
+          <a href="/tienda" class="pedido-pagina__seguir">Seguir comprando</a>
+        </aside>
+      </div>
+
+      <div class="pedido-pagina__vacio" data-pedido-vacio hidden>
+        <p>Tu pedido está vacío.</p>
+        <a href="/tienda" class="btn btn-primary">Ver el catálogo</a>
+      </div>
+
+      <div class="pedido-pagina__ayuda reveal">
+        <WhatsAppBanner
+          texto="¿Tienes dudas sobre tu pedido?"
+          mensaje="¡Hola! Tengo una duda sobre un pedido de Inefable ALRO 🕯️"
+        />
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script is:inline define:vars={{ envioNorte, envioResto }}>
+  // Se usa is:inline + define:vars para que los valores de envío (que vienen de
+  // variables de entorno en el build) lleguen al navegador sin duplicar el número.
+  window.__enviosInefable = { norte: envioNorte, resto: envioResto };
+</script>
+
+<script>
+  function safe(fn: () => void, name: string) {
+    try { fn(); } catch (e) { console.warn('[' + name + ']', e); }
+  }
+
+  const NUMERO_WHATSAPP = '573021101969';
+
+  function initPedidoPagina() {
+    const grid = document.querySelector('[data-pedido-grid]') as HTMLElement | null;
+    if (!grid) return;
+
+    const carrito = (window as any).carritoInefable;
+    if (!carrito) return;
+
+    const envios = (window as any).__enviosInefable || { norte: 0, resto: 15000 };
+    const lista = document.querySelector('[data-pedido-lista]') as HTMLElement | null;
+    const vacio = document.querySelector('[data-pedido-vacio]') as HTMLElement | null;
+    const zonaSelect = document.querySelector('[data-pedido-zona]') as HTMLSelectElement | null;
+
+    function envioDeZona(zona: string) {
+      if (zona === 'bogota-norte') return envios.norte;
+      if (zona === 'bogota-resto') return envios.resto;
+      return null; // otra ciudad: se cotiza, no se puede sumar todavía
+    }
+
+    function pintar() {
+      const items = carrito.leer();
+      const hayItems = items.length > 0;
+      grid.hidden = !hayItems;
+      if (vacio) vacio.hidden = hayItems;
+      if (!hayItems || !lista) return;
+
+      lista.innerHTML = items
+        .map((it: any) => `
+          <article class="linea">
+            ${it.imagen ? `<img src="${it.imagen}" alt="" width="86" height="86" loading="lazy" />` : '<div class="linea__sinfoto"></div>'}
+            <div class="linea__datos">
+              <h3>${it.nombre}</h3>
+              <p class="linea__pres">${it.presentacion}</p>
+              <p class="linea__precio">${it.precio === null || it.precio === undefined ? 'Por cotización' : carrito.formatPrecio(it.precio)}</p>
+            </div>
+            <div class="linea__acciones">
+              <input type="number" min="1" max="50" value="${it.cantidad}"
+                aria-label="Cantidad de ${it.nombre}"
+                data-carrito-cantidad data-slug="${it.slug}" data-presentacion="${it.presentacion}" />
+              <button type="button" data-carrito-quitar data-slug="${it.slug}" data-presentacion="${it.presentacion}">Quitar</button>
+            </div>
+          </article>
+        `)
+        .join('');
+
+      const subtotal = carrito.subtotal(items);
+      const zona = zonaSelect?.value || 'bogota-norte';
+      const envio = envioDeZona(zona);
+      const cotiza = carrito.hayCotizacion(items);
+
+      const elSub = document.querySelector('[data-pedido-subtotal]');
+      const elEnvio = document.querySelector('[data-pedido-envio]');
+      const elTotal = document.querySelector('[data-pedido-total]');
+      if (elSub) elSub.textContent = carrito.formatPrecio(subtotal);
+      if (elEnvio) elEnvio.textContent = envio === null ? 'Se cotiza' : envio === 0 ? 'Gratis' : carrito.formatPrecio(envio);
+      if (elTotal) elTotal.textContent = envio === null ? carrito.formatPrecio(subtotal) + ' + envío' : carrito.formatPrecio(subtotal + envio);
+
+      // Un solo aviso, con la razón concreta por la que este pedido no se cierra solo.
+      const aviso = document.querySelector('[data-pedido-aviso]') as HTMLElement | null;
+      if (aviso) {
+        let texto = '';
+        if (cotiza) texto = 'Tu pedido incluye productos por cotización, así que lo coordinamos por WhatsApp y te confirmamos el precio final antes de cobrar nada.';
+        else if (envio === null) texto = 'Para envíos fuera de Bogotá cotizamos la transportadora según tu ciudad, así que coordinamos el pedido por WhatsApp.';
+        aviso.hidden = texto === '';
+        aviso.textContent = texto;
+      }
+
+      // Enlace de WhatsApp con el pedido ya escrito.
+      const cta = document.querySelector('[data-pedido-whatsapp]') as HTMLAnchorElement | null;
+      if (cta) {
+        const detalle = items
+          .map((it: any) => `• ${it.cantidad} x ${it.nombre} (${it.presentacion})`)
+          .join('\n');
+        const zonaTexto = zona === 'bogota-norte' ? 'Norte de Bogotá' : zona === 'bogota-resto' ? 'Resto de Bogotá' : 'Otra ciudad';
+        const mensaje = `¡Hola! Quiero hacer este pedido 🕯️\n\n${detalle}\n\nEntrega: ${zonaTexto}`;
+        cta.href = `https://wa.me/${NUMERO_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
+      }
+    }
+
+    // El panel lateral y esta página comparten el mismo carrito: cuando uno cambia
+    // algo, el otro se entera por este evento en vez de leer el storage a ciegas.
+    document.addEventListener('carrito:cambio', pintar);
+    zonaSelect?.addEventListener('change', pintar);
+    pintar();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => safe(initPedidoPagina, 'initPedidoPagina'));
+</script>
+
+<style is:global>
+  .pedido-pagina { padding: 150px 0 100px; }
+  .pedido-pagina h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3rem);
+    margin: 0 0 44px;
+  }
+
+  .pedido-pagina__grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 46px;
+    align-items: start;
+  }
+  .pedido-pagina__grid[hidden] { display: none; }
+
+  .linea {
+    display: grid;
+    grid-template-columns: 86px 1fr auto;
+    gap: 18px;
+    align-items: start;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .linea:first-child { padding-top: 0; }
+  .linea img,
+  .linea__sinfoto {
+    width: 86px;
+    height: 86px;
+    object-fit: cover;
+    border-radius: var(--radius);
+    background: var(--bg-3);
+  }
+  .linea__datos h3 {
+    margin: 0 0 3px;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+  .linea__pres { margin: 0; font-size: 0.82rem; color: var(--cream-3); }
+  .linea__precio { margin: 6px 0 0; color: var(--gold); font-size: 0.92rem; }
+  .linea__acciones { display: flex; flex-direction: column; align-items: flex-end; gap: 9px; }
+  .linea__acciones input {
+    width: 62px;
+    padding: 8px;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--cream);
+    font-family: inherit;
+    text-align: center;
+  }
+  .linea__acciones button {
+    background: none;
+    border: none;
+    color: var(--cream-3);
+    font-size: 0.78rem;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    transition: color .2s ease;
+  }
+  .linea__acciones button:hover { color: var(--accent); }
+
+  .pedido-pagina__resumen {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 28px;
+    position: sticky;
+    top: 110px;
+  }
+  .pedido-pagina__resumen h2 {
+    margin: 0 0 20px;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+  }
+  .pedido-pagina__zona {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--cream-3);
+    margin-bottom: 22px;
+  }
+  .pedido-pagina__zona select {
+    padding: 12px 14px;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--cream);
+    font-family: inherit;
+    font-size: 0.9rem;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .pedido-pagina__cuentas { margin: 0 0 20px; }
+  .pedido-pagina__cuentas div {
+    display: flex;
+    justify-content: space-between;
+    padding: 9px 0;
+    font-size: 0.9rem;
+    color: var(--cream-2);
+  }
+  .pedido-pagina__cuentas dt, .pedido-pagina__cuentas dd { margin: 0; }
+  .pedido-pagina__total {
+    border-top: 1px solid var(--line);
+    margin-top: 6px;
+    padding-top: 14px !important;
+    font-size: 1.05rem !important;
+    color: var(--cream) !important;
+  }
+  .pedido-pagina__aviso {
+    margin: 0 0 18px;
+    padding: 12px 14px;
+    background: rgba(201, 138, 69, 0.1);
+    border-left: 2px solid var(--accent);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--cream-2);
+  }
+  .pedido-pagina__aviso[hidden] { display: none; }
+  .pedido-pagina__cta { display: block; text-align: center; width: 100%; }
+  .pedido-pagina__seguir {
+    display: block;
+    text-align: center;
+    margin-top: 14px;
+    font-size: 0.82rem;
+    color: var(--cream-3);
+  }
+  .pedido-pagina__seguir:hover { color: var(--accent); }
+
+  .pedido-pagina__vacio { padding: 40px 0 60px; }
+  .pedido-pagina__vacio[hidden] { display: none; }
+  .pedido-pagina__vacio p { color: var(--cream-3); margin-bottom: 22px; }
+  .pedido-pagina__ayuda { margin-top: 60px; }
+
+  @media (max-width: 900px) {
+    .pedido-pagina { padding-top: 120px; }
+    .pedido-pagina__grid { grid-template-columns: 1fr; gap: 34px; }
+    .pedido-pagina__resumen { position: static; }
+  }
+</style>

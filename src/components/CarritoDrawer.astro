@@ -1,0 +1,409 @@
+---
+// Panel lateral del carrito + el "cerebro" del carrito para todo el sitio.
+//
+// Va en Layout.astro, así que se carga una sola vez por página y queda disponible
+// en todas. El script expone window.carritoInefable para que otras partes del sitio
+// (la página /carrito) puedan leer y modificar el mismo carrito sin duplicar lógica.
+//
+// Los botones "Agregar al carrito" NO traen su propio script: este escucha los clics
+// por delegación en el documento. Así da igual cuántos haya en la página, y los que
+// aparezcan después siguen funcionando.
+---
+
+<div class="carrito" data-carrito hidden>
+  <div class="carrito__fondo" data-carrito-cerrar></div>
+
+  <aside class="carrito__panel" role="dialog" aria-modal="true" aria-label="Tu pedido">
+    <header class="carrito__head">
+      <h2>Tu pedido</h2>
+      <button type="button" class="carrito__cerrar" data-carrito-cerrar aria-label="Cerrar">&times;</button>
+    </header>
+
+    <div class="carrito__items" data-carrito-items></div>
+
+    <footer class="carrito__pie" data-carrito-pie hidden>
+      <div class="carrito__subtotal">
+        <span>Subtotal</span>
+        <strong data-carrito-subtotal></strong>
+      </div>
+      <p class="carrito__nota" data-carrito-nota hidden></p>
+      <a href="/carrito" class="btn btn-primary carrito__ir">Ver mi pedido</a>
+      <button type="button" class="carrito__seguir" data-carrito-cerrar>Seguir comprando</button>
+    </footer>
+  </aside>
+</div>
+
+<script>
+  // Ojo: los estilos de este componente son globales (no scoped) a propósito — las
+  // filas del carrito las crea este script, y los estilos scoped de Astro solo
+  // alcanzan al HTML que existe en el build.
+  function safe(fn: () => void, name: string) {
+    try { fn(); } catch (e) { console.warn('[' + name + ']', e); }
+  }
+
+  const CLAVE = 'inefable_carrito_v1';
+  const TOPE_CANTIDAD = 50;
+
+  type Item = {
+    slug: string;
+    nombre: string;
+    presentacion: string;
+    precio: number | null;   // null = "Por cotización"
+    cantidad: number;
+    imagen?: string;
+  };
+
+  const formatPrecio = (n: number) => '$' + n.toLocaleString('es-CO') + ' COP';
+
+  // localStorage puede fallar (modo privado, cookies bloqueadas). Si pasa, el carrito
+  // funciona igual dentro de la página; solo no sobrevive al recargar.
+  let memoria: Item[] = [];
+
+  function leer(): Item[] {
+    try {
+      const crudo = localStorage.getItem(CLAVE);
+      if (!crudo) return memoria;
+      const datos = JSON.parse(crudo);
+      return Array.isArray(datos) ? datos : [];
+    } catch (e) {
+      return memoria;
+    }
+  }
+
+  function guardar(items: Item[]) {
+    memoria = items;
+    try {
+      localStorage.setItem(CLAVE, JSON.stringify(items));
+    } catch (e) {
+      /* sin persistencia, pero la sesión sigue */
+    }
+    pintar();
+    document.dispatchEvent(new CustomEvent('carrito:cambio', { detail: items }));
+  }
+
+  function mismaLinea(a: Item, slug: string, presentacion: string) {
+    return a.slug === slug && a.presentacion === presentacion;
+  }
+
+  function agregar(nuevo: Item) {
+    const items = leer();
+    const existente = items.find((it) => mismaLinea(it, nuevo.slug, nuevo.presentacion));
+    if (existente) {
+      existente.cantidad = Math.min(TOPE_CANTIDAD, existente.cantidad + nuevo.cantidad);
+    } else {
+      items.push({ ...nuevo, cantidad: Math.min(TOPE_CANTIDAD, nuevo.cantidad) });
+    }
+    guardar(items);
+  }
+
+  function cambiarCantidad(slug: string, presentacion: string, cantidad: number) {
+    const items = leer();
+    const item = items.find((it) => mismaLinea(it, slug, presentacion));
+    if (!item) return;
+    item.cantidad = Math.max(1, Math.min(TOPE_CANTIDAD, cantidad));
+    guardar(items);
+  }
+
+  function quitar(slug: string, presentacion: string) {
+    guardar(leer().filter((it) => !mismaLinea(it, slug, presentacion)));
+  }
+
+  function vaciar() {
+    guardar([]);
+  }
+
+  function subtotal(items: Item[]) {
+    return items.reduce((suma, it) => suma + (it.precio ?? 0) * it.cantidad, 0);
+  }
+
+  function hayCotizacion(items: Item[]) {
+    return items.some((it) => it.precio === null || it.precio === undefined);
+  }
+
+  function totalUnidades(items: Item[]) {
+    return items.reduce((suma, it) => suma + it.cantidad, 0);
+  }
+
+  // ---------------------------------------------------------------- pintar
+
+  function pintar() {
+    const items = leer();
+
+    // Contador del header (en todas las páginas).
+    document.querySelectorAll('[data-carrito-contador]').forEach((el) => {
+      const n = totalUnidades(items);
+      el.textContent = String(n);
+      (el as HTMLElement).hidden = n === 0;
+    });
+
+    const cont = document.querySelector('[data-carrito-items]');
+    const pie = document.querySelector('[data-carrito-pie]') as HTMLElement | null;
+    if (!cont) return;
+
+    if (items.length === 0) {
+      cont.innerHTML = '<p class="carrito__vacio">Todavía no has agregado nada.<br />Explora el catálogo y arma tu pedido.</p>';
+      if (pie) pie.hidden = true;
+      return;
+    }
+
+    cont.innerHTML = items
+      .map((it) => `
+        <article class="carrito__item">
+          ${it.imagen ? `<img src="${it.imagen}" alt="" width="64" height="64" loading="lazy" />` : '<div class="carrito__sinfoto"></div>'}
+          <div class="carrito__item-datos">
+            <h3>${it.nombre}</h3>
+            <p class="carrito__item-pres">${it.presentacion}</p>
+            <p class="carrito__item-precio">${it.precio === null || it.precio === undefined ? 'Por cotización' : formatPrecio(it.precio)}</p>
+          </div>
+          <div class="carrito__item-acciones">
+            <input
+              type="number" min="1" max="${TOPE_CANTIDAD}" value="${it.cantidad}"
+              aria-label="Cantidad de ${it.nombre}"
+              data-carrito-cantidad data-slug="${it.slug}" data-presentacion="${it.presentacion}"
+            />
+            <button type="button" data-carrito-quitar data-slug="${it.slug}" data-presentacion="${it.presentacion}" aria-label="Quitar ${it.nombre}">Quitar</button>
+          </div>
+        </article>
+      `)
+      .join('');
+
+    if (pie) {
+      pie.hidden = false;
+      const sub = pie.querySelector('[data-carrito-subtotal]');
+      if (sub) sub.textContent = formatPrecio(subtotal(items));
+      const nota = pie.querySelector('[data-carrito-nota]') as HTMLElement | null;
+      if (nota) {
+        // Si hay algo por cotizar, el subtotal no es el total real: se dice aquí y no
+        // al final, para que nadie llegue a la página de pedido con una sorpresa.
+        nota.hidden = !hayCotizacion(items);
+        nota.textContent = 'Tu pedido incluye productos por cotización. Te escribimos por WhatsApp para darte el precio final.';
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------- panel
+
+  function abrir() {
+    const panel = document.querySelector('[data-carrito]') as HTMLElement | null;
+    if (!panel) return;
+    panel.hidden = false;
+    // El siguiente frame, para que la transición sí se vea (si entra con la clase
+    // puesta desde el mismo tick, el navegador no anima nada).
+    requestAnimationFrame(() => panel.classList.add('is-open'));
+    document.body.style.overflow = 'hidden';
+  }
+
+  function cerrar() {
+    const panel = document.querySelector('[data-carrito]') as HTMLElement | null;
+    if (!panel) return;
+    panel.classList.remove('is-open');
+    document.body.style.overflow = '';
+    window.setTimeout(() => { panel.hidden = true; }, 300);
+  }
+
+  // ---------------------------------------------------------------- eventos
+
+  function initCarrito() {
+    pintar();
+
+    document.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+
+      // Abrir / cerrar
+      if (t.closest('[data-carrito-abrir]')) { e.preventDefault(); abrir(); return; }
+      if (t.closest('[data-carrito-cerrar]')) { cerrar(); return; }
+
+      // Quitar una línea
+      const quitarBtn = t.closest('[data-carrito-quitar]') as HTMLElement | null;
+      if (quitarBtn) {
+        quitar(quitarBtn.dataset.slug || '', quitarBtn.dataset.presentacion || '');
+        return;
+      }
+
+      // Agregar al carrito
+      const btn = t.closest('[data-agregar-btn]') as HTMLElement | null;
+      if (!btn) return;
+      const caja = btn.closest('[data-agregar]') as HTMLElement | null;
+      if (!caja) return;
+
+      const select = caja.querySelector('[data-agregar-presentacion]') as HTMLSelectElement | null;
+      const cantidadEl = caja.querySelector('[data-agregar-cantidad]') as HTMLInputElement | null;
+      const opcion = select?.selectedOptions[0];
+      const precioTexto = opcion?.dataset.precio;
+
+      agregar({
+        slug: caja.dataset.slug || '',
+        nombre: caja.dataset.nombre || '',
+        imagen: caja.dataset.imagen || undefined,
+        presentacion: select?.value || caja.dataset.presentacion || 'Única',
+        precio: precioTexto ? Number(precioTexto) : null,
+        cantidad: Number(cantidadEl?.value) || 1,
+      });
+
+      abrir();
+    });
+
+    // Cambiar cantidad desde el panel
+    document.addEventListener('change', (e) => {
+      const input = (e.target as HTMLElement).closest('[data-carrito-cantidad]') as HTMLInputElement | null;
+      if (!input) return;
+      cambiarCantidad(input.dataset.slug || '', input.dataset.presentacion || '', Number(input.value));
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') cerrar();
+    });
+
+    // API para la página /carrito, que pinta su propia lista con estos mismos datos.
+    (window as any).carritoInefable = { leer, agregar, quitar, cambiarCantidad, vaciar, subtotal, hayCotizacion, totalUnidades, formatPrecio, abrir, cerrar };
+  }
+
+  document.addEventListener('DOMContentLoaded', () => safe(initCarrito, 'initCarrito'));
+</script>
+
+<style is:global>
+  .carrito { position: fixed; inset: 0; z-index: 200; }
+  .carrito[hidden] { display: none; }
+
+  .carrito__fondo {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 7, 4, 0.6);
+    opacity: 0;
+    transition: opacity .3s ease;
+  }
+  .carrito.is-open .carrito__fondo { opacity: 1; }
+
+  .carrito__panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: min(420px, 92vw);
+    background: var(--bg-2);
+    border-left: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform .3s ease;
+  }
+  .carrito.is-open .carrito__panel { transform: translateX(0); }
+
+  .carrito__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 26px 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .carrito__head h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    color: var(--cream);
+  }
+  .carrito__cerrar {
+    background: none;
+    border: none;
+    color: var(--cream-3);
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+    transition: color .2s ease;
+  }
+  .carrito__cerrar:hover { color: var(--accent); }
+
+  .carrito__items { flex: 1; overflow-y: auto; padding: 8px 26px; }
+  .carrito__vacio {
+    color: var(--cream-3);
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 48px 0;
+    line-height: 1.7;
+  }
+
+  .carrito__item {
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    gap: 14px;
+    align-items: start;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .carrito__item img,
+  .carrito__sinfoto {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: var(--radius);
+    background: var(--bg-3);
+  }
+  .carrito__item-datos h3 {
+    margin: 0 0 2px;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--cream);
+    line-height: 1.4;
+  }
+  .carrito__item-pres { margin: 0; font-size: 0.78rem; color: var(--cream-3); }
+  .carrito__item-precio { margin: 4px 0 0; font-size: 0.85rem; color: var(--gold); }
+
+  .carrito__item-acciones { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .carrito__item-acciones input {
+    width: 58px;
+    padding: 6px 8px;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--cream);
+    font-family: inherit;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  .carrito__item-acciones button {
+    background: none;
+    border: none;
+    color: var(--cream-3);
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    transition: color .2s ease;
+  }
+  .carrito__item-acciones button:hover { color: var(--accent); }
+
+  .carrito__pie { padding: 20px 26px 26px; border-top: 1px solid var(--line); }
+  .carrito__pie[hidden] { display: none; }
+  .carrito__subtotal {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+    font-size: 0.9rem;
+    color: var(--cream-2);
+  }
+  .carrito__subtotal strong { font-size: 1.15rem; color: var(--cream); font-weight: 400; }
+  .carrito__nota {
+    margin: 0 0 14px;
+    font-size: 0.76rem;
+    line-height: 1.6;
+    color: var(--gold);
+  }
+  .carrito__nota[hidden] { display: none; }
+  .carrito__ir { display: block; text-align: center; width: 100%; }
+  .carrito__seguir {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    background: none;
+    border: none;
+    color: var(--cream-3);
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: color .2s ease;
+  }
+  .carrito__seguir:hover { color: var(--accent); }
+</style>
