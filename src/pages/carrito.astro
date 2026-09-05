@@ -21,12 +21,26 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
       <div class="pedido-pagina__grid" data-pedido-grid hidden>
         <div class="pedido-pagina__lista" data-pedido-lista></div>
 
-        <aside class="pedido-pagina__resumen">
+        <form
+          class="pedido-pagina__resumen"
+          name="pedido-producto"
+          method="POST"
+          data-netlify="true"
+          netlify-honeypot="bot-field-prod"
+          id="form-carrito"
+        >
+          <input type="hidden" name="form-name" value="pedido-producto" />
+          <p class="hidden-field"><label>No llenar: <input name="bot-field-prod" /></label></p>
+          <input type="hidden" name="numero-pedido" data-campo-numero />
+          <input type="hidden" name="pedido" data-campo-pedido />
+          <input type="hidden" name="producto" data-campo-resumen />
+          <input type="hidden" name="total" data-campo-total />
+
           <h2>Resumen</h2>
 
           <label class="pedido-pagina__zona">
             ¿Dónde lo entregamos?
-            <select data-pedido-zona>
+            <select name="entrega" data-pedido-zona>
               <option value="bogota-norte">Norte de Bogotá — envío gratis</option>
               <option value="bogota-resto">Resto de Bogotá — ${formatPrecio(envioResto)}</option>
               <option value="otra">Otra ciudad — se cotiza el envío</option>
@@ -41,11 +55,55 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
 
           <p class="pedido-pagina__aviso" data-pedido-aviso hidden></p>
 
-          <a class="btn btn-primary pedido-pagina__cta" data-pedido-whatsapp href="#">
-            Enviar mi pedido por WhatsApp
-          </a>
+          <div class="pedido-pagina__datos">
+            <label>
+              Nombre completo
+              <input type="text" name="nombre" required autocomplete="name" />
+            </label>
+            <label>
+              Número de WhatsApp
+              <div class="phone-field">
+                <span class="phone-field__prefix">+57</span>
+                <input
+                  type="tel" name="whatsapp" required inputmode="numeric"
+                  pattern="3[0-9]{9}" maxlength="10" placeholder="3001234567" autocomplete="tel-national"
+                  title="Escribe tu celular colombiano: 10 dígitos, comenzando por 3"
+                />
+              </div>
+            </label>
+            <label>
+              Correo electrónico
+              <input
+                type="email" name="correo" required autocomplete="email"
+                pattern="[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}"
+                title="Escribe un correo válido, por ejemplo nombre@dominio.com"
+              />
+            </label>
+            <label data-campo-direccion>
+              Dirección de entrega
+              <input type="text" name="direccion" autocomplete="street-address" placeholder="Calle 123 #45-67, apto 890" />
+            </label>
+            <label>
+              ¿Algo que debamos saber? <span class="opcional">(opcional)</span>
+              <textarea name="notas" rows="2" placeholder="Una dedicatoria, una fecha, un detalle…"></textarea>
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-primary pedido-pagina__cta" data-pedido-enviar>
+            Finalizar pedido
+          </button>
+          <p class="pedido-pagina__estado" data-pedido-estado role="status"></p>
           <a href="/tienda" class="pedido-pagina__seguir">Seguir comprando</a>
-        </aside>
+        </form>
+      </div>
+
+      <div class="pedido-pagina__listo" data-pedido-listo hidden>
+        <span class="kicker">Pedido <span data-pedido-listo-numero></span></span>
+        <h2>¡Listo! Ya tenemos tu pedido</h2>
+        <p data-pedido-listo-texto></p>
+        <p class="pedido-pagina__listo-nota">Guarda el número de tu pedido: con él lo identificamos en cualquier momento.</p>
+        <a class="btn btn-ghost" data-pedido-listo-wa href="#" target="_blank" rel="noopener">Escribirnos por WhatsApp</a>
+        <a href="/tienda" class="pedido-pagina__seguir">Volver al catálogo</a>
       </div>
 
       <div class="pedido-pagina__vacio" data-pedido-vacio hidden>
@@ -76,6 +134,20 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
 
   const NUMERO_WHATSAPP = '573021101969';
 
+  // Número de pedido legible: IA-AAMMDD-XXXX. No es correlativo (1, 2, 3…) porque eso
+  // exigiría una base de datos compartida que este sitio no tiene, a propósito. Lleva
+  // la fecha adelante para que ordene solo, y 4 caracteres al azar sin letras que se
+  // confundan al dictarlo por teléfono (nada de O/0, I/1).
+  function nuevoNumeroPedido() {
+    const ALFABETO = 'ACDEFGHJKLMNPQRTUVWXY34789';
+    const d = new Date();
+    const dosDigitos = (n: number) => String(n).padStart(2, '0');
+    const fecha = `${dosDigitos(d.getFullYear() % 100)}${dosDigitos(d.getMonth() + 1)}${dosDigitos(d.getDate())}`;
+    let azar = '';
+    for (let i = 0; i < 4; i++) azar += ALFABETO[Math.floor(Math.random() * ALFABETO.length)];
+    return `IA-${fecha}-${azar}`;
+  }
+
   function initPedidoPagina() {
     const grid = document.querySelector('[data-pedido-grid]') as HTMLElement | null;
     if (!grid) return;
@@ -84,14 +156,31 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
     if (!carrito) return;
 
     const envios = (window as any).__enviosInefable || { norte: 0, resto: 15000 };
+    const form = document.getElementById('form-carrito') as HTMLFormElement | null;
     const lista = document.querySelector('[data-pedido-lista]') as HTMLElement | null;
     const vacio = document.querySelector('[data-pedido-vacio]') as HTMLElement | null;
     const zonaSelect = document.querySelector('[data-pedido-zona]') as HTMLSelectElement | null;
+    const estado = document.querySelector('[data-pedido-estado]') as HTMLElement | null;
+    const botonEnviar = document.querySelector('[data-pedido-enviar]') as HTMLButtonElement | null;
+    const campoDireccion = document.querySelector('[data-campo-direccion]') as HTMLElement | null;
+
+    const set = (sel: string, valor: string) => {
+      const el = document.querySelector(sel) as HTMLInputElement | null;
+      if (el) el.value = valor;
+    };
 
     function envioDeZona(zona: string) {
       if (zona === 'bogota-norte') return envios.norte;
       if (zona === 'bogota-resto') return envios.resto;
       return null; // otra ciudad: se cotiza, no se puede sumar todavía
+    }
+
+    function estadoActual() {
+      const items = carrito.leer();
+      const zona = zonaSelect?.value || 'bogota-norte';
+      const envio = envioDeZona(zona);
+      const cotiza = carrito.hayCotizacion(items);
+      return { items, zona, envio, cotiza, subtotal: carrito.subtotal(items), sePuedePagar: envio !== null && !cotiza };
     }
 
     function pintar() {
@@ -120,37 +209,125 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
         `)
         .join('');
 
-      const subtotal = carrito.subtotal(items);
-      const zona = zonaSelect?.value || 'bogota-norte';
-      const envio = envioDeZona(zona);
-      const cotiza = carrito.hayCotizacion(items);
+      const { zona, envio, cotiza, subtotal, sePuedePagar } = estadoActual();
+      const total = subtotal + (envio || 0);
 
       const elSub = document.querySelector('[data-pedido-subtotal]');
       const elEnvio = document.querySelector('[data-pedido-envio]');
       const elTotal = document.querySelector('[data-pedido-total]');
       if (elSub) elSub.textContent = carrito.formatPrecio(subtotal);
       if (elEnvio) elEnvio.textContent = envio === null ? 'Se cotiza' : envio === 0 ? 'Gratis' : carrito.formatPrecio(envio);
-      if (elTotal) elTotal.textContent = envio === null ? carrito.formatPrecio(subtotal) + ' + envío' : carrito.formatPrecio(subtotal + envio);
+      if (elTotal) elTotal.textContent = envio === null ? carrito.formatPrecio(subtotal) + ' + envío' : carrito.formatPrecio(total);
+
+      // La dirección solo se pide (y se exige) si entregamos nosotros en Bogotá.
+      if (campoDireccion) {
+        const entradaDir = campoDireccion.querySelector('input') as HTMLInputElement | null;
+        campoDireccion.hidden = zona === 'otra';
+        if (entradaDir) entradaDir.required = zona !== 'otra';
+      }
 
       // Un solo aviso, con la razón concreta por la que este pedido no se cierra solo.
       const aviso = document.querySelector('[data-pedido-aviso]') as HTMLElement | null;
       if (aviso) {
         let texto = '';
-        if (cotiza) texto = 'Tu pedido incluye productos por cotización, así que lo coordinamos por WhatsApp y te confirmamos el precio final antes de cobrar nada.';
-        else if (envio === null) texto = 'Para envíos fuera de Bogotá cotizamos la transportadora según tu ciudad, así que coordinamos el pedido por WhatsApp.';
+        if (cotiza) texto = 'Tu pedido incluye productos que se cotizan, así que este no se paga en línea: te escribimos con el valor final antes de cobrar nada.';
+        else if (envio === null) texto = 'Para otras ciudades cotizamos el envío con la transportadora, así que este pedido lo cerramos por WhatsApp.';
         aviso.hidden = texto === '';
         aviso.textContent = texto;
       }
 
-      // Enlace de WhatsApp con el pedido ya escrito.
-      const cta = document.querySelector('[data-pedido-whatsapp]') as HTMLAnchorElement | null;
-      if (cta) {
-        const detalle = items
-          .map((it: any) => `• ${it.cantidad} x ${it.nombre} (${it.presentacion})`)
-          .join('\n');
-        const zonaTexto = zona === 'bogota-norte' ? 'Norte de Bogotá' : zona === 'bogota-resto' ? 'Resto de Bogotá' : 'Otra ciudad';
-        const mensaje = `¡Hola! Quiero hacer este pedido 🕯️\n\n${detalle}\n\nEntrega: ${zonaTexto}`;
-        cta.href = `https://wa.me/${NUMERO_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
+      if (botonEnviar) {
+        botonEnviar.textContent = sePuedePagar ? `Pagar ${carrito.formatPrecio(total)}` : 'Enviar mi pedido';
+      }
+
+      // Los campos ocultos van siempre al día, así el envío no depende de recordar
+      // llenarlos en el último momento.
+      set('[data-campo-pedido]', JSON.stringify(carrito.leer().map((it: any) => ({ s: it.slug, p: it.presentacion, c: it.cantidad }))));
+      set('[data-campo-resumen]', carrito.leer().map((it: any) => `${it.cantidad} x ${it.nombre} (${it.presentacion})`).join(' | '));
+      set('[data-campo-total]', envio === null ? String(subtotal) : String(total));
+    }
+
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+
+      const { zona, sePuedePagar } = estadoActual();
+      const numeroPedido = nuevoNumeroPedido();
+      set('[data-campo-numero]', numeroPedido);
+      pintar();
+      set('[data-campo-numero]', numeroPedido);
+
+      const nombre = (form.querySelector('input[name="nombre"]') as HTMLInputElement | null)?.value || '';
+      const correo = (form.querySelector('input[name="correo"]') as HTMLInputElement | null)?.value || '';
+      const pedidoJson = (document.querySelector('[data-campo-pedido]') as HTMLInputElement | null)?.value || '[]';
+
+      if (botonEnviar) botonEnviar.disabled = true;
+      if (estado) estado.textContent = 'Guardando tu pedido…';
+
+      // Primero el registro (CRM + correos), igual que en el resto del sitio: si el
+      // pago falla después, el pedido ya quedó guardado y nadie pierde la venta.
+      fetch('/', {
+        method: 'POST',
+        // Sin "charset=UTF-8" el receptor asume latin-1 y las tildes y eñes llegan
+        // rotas ("Aromática" -> "Arom?tica"), y de ahí se propaga al CRM y a los correos.
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        body: new URLSearchParams(new FormData(form) as any).toString(),
+      })
+        .then(() => {
+          if (!sePuedePagar) {
+            terminarSinPago(numeroPedido);
+            return;
+          }
+
+          if (estado) estado.textContent = 'Te estamos llevando a la página de pago…';
+          fetch('/.netlify/functions/pago-producto', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              pedido: pedidoJson,
+              zonaBogota: zona === 'bogota-norte' ? 'norte' : 'resto',
+              nombre,
+              correo,
+              numeroPedido,
+            }),
+          })
+            .then((res) => (res.ok ? res.json() : Promise.reject(new Error('pago-producto no disponible'))))
+            .then(({ checkoutUrl }) => { window.location.href = checkoutUrl; })
+            .catch(() => {
+              // El pago no se pudo iniciar, pero el pedido YA quedó registrado.
+              terminarSinPago(numeroPedido, true);
+            });
+        })
+        .catch(() => {
+          if (estado) estado.textContent = 'Hubo un problema al enviar tu pedido. Escríbenos por WhatsApp, por favor.';
+          if (botonEnviar) botonEnviar.disabled = false;
+        });
+    });
+
+    function terminarSinPago(numeroPedido: string, fallóPago = false) {
+      const { items, zona } = estadoActual();
+      const detalle = items.map((it: any) => `• ${it.cantidad} x ${it.nombre} (${it.presentacion})`).join('\n');
+      const zonaTexto = zona === 'bogota-norte' ? 'Norte de Bogotá' : zona === 'bogota-resto' ? 'Resto de Bogotá' : 'Otra ciudad';
+      const mensaje = `¡Hola! Acabo de hacer el pedido ${numeroPedido} 🕯️\n\n${detalle}\n\nEntrega: ${zonaTexto}`;
+      const link = `https://wa.me/${NUMERO_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
+
+      carrito.vaciar();
+      grid.hidden = true;
+      if (vacio) vacio.hidden = true;
+
+      const caja = document.querySelector('[data-pedido-listo]') as HTMLElement | null;
+      if (caja) {
+        caja.hidden = false;
+        const num = caja.querySelector('[data-pedido-listo-numero]');
+        if (num) num.textContent = numeroPedido;
+        const texto = caja.querySelector('[data-pedido-listo-texto]');
+        if (texto) {
+          texto.textContent = fallóPago
+            ? 'Tu pedido quedó registrado, pero el pago en línea no se pudo abrir. Te escribimos para completarlo — no lo intentes de nuevo, no se perdió nada.'
+            : 'Te acabamos de enviar el detalle por correo. Como tu pedido necesita cotización o envío fuera de Bogotá, te escribimos para cerrar el valor final.';
+        }
+        const wa = caja.querySelector('[data-pedido-listo-wa]') as HTMLAnchorElement | null;
+        if (wa) wa.href = link;
       }
     }
 
@@ -298,6 +475,80 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
     color: var(--cream-3);
   }
   .pedido-pagina__seguir:hover { color: var(--accent); }
+
+  /* Campos del checkout. phone-field y hidden-field se repiten aquí porque los
+     estilos de FormPedido.astro son scoped y no alcanzan a esta página. */
+  .pedido-pagina__datos {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  .pedido-pagina__datos label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--cream-3);
+  }
+  .pedido-pagina__datos label[hidden] { display: none; }
+  .pedido-pagina__datos .opcional { text-transform: none; letter-spacing: 0; opacity: .7; }
+  .pedido-pagina__datos input,
+  .pedido-pagina__datos textarea {
+    width: 100%;
+    padding: 11px 13px;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--cream);
+    font-family: inherit;
+    font-size: 0.92rem;
+    text-transform: none;
+    letter-spacing: 0;
+    resize: vertical;
+  }
+  .pedido-pagina__datos input:focus,
+  .pedido-pagina__datos textarea:focus { outline: none; border-color: var(--accent); }
+  .phone-field { display: flex; gap: 8px; }
+  .phone-field__prefix {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--cream-3);
+    font-size: 0.9rem;
+  }
+  .phone-field input { flex: 1; min-width: 0; }
+  .hidden-field { position: absolute; left: -9999px; }
+
+  .pedido-pagina__estado {
+    margin: 12px 0 0;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--gold);
+    min-height: 1em;
+  }
+  .pedido-pagina__cta[disabled] { opacity: .55; cursor: default; }
+
+  .pedido-pagina__listo {
+    max-width: 560px;
+    padding: 36px 0 60px;
+  }
+  .pedido-pagina__listo[hidden] { display: none; }
+  .pedido-pagina__listo h2 {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    margin: 8px 0 14px;
+  }
+  .pedido-pagina__listo p { color: var(--cream-2); line-height: 1.7; }
+  .pedido-pagina__listo-nota { font-size: 0.85rem; color: var(--cream-3); }
+  .pedido-pagina__listo .btn { margin-top: 10px; }
 
   .pedido-pagina__vacio { padding: 40px 0 60px; }
   .pedido-pagina__vacio[hidden] { display: none; }

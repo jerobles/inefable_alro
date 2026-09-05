@@ -1,19 +1,11 @@
 import { crearPreferencia, siteUrl } from './lib/mercadopago.js';
+import { comoLista } from './lib/pedido.js';
 import talleresRaw from './data/talleres.cjs';
 
 const NOMBRE = 'pago-taller';
-// El archivo de precios se genera en el build (scripts/generar-datos-pago.mjs). Se
-// importa, no se lee del disco, y se normaliza a un arreglo antes de usarlo: según cómo
-// lo empaquete Netlify, el mismo `import` puede llegar como el arreglo directo o
-// envuelto en un objeto con .default. Confiar en una sola de esas formas tumbó la
-// función en producción (2026-09-05). Ver el detalle en generar-datos-pago.mjs.
-function comoLista(mod) {
-  if (Array.isArray(mod)) return mod;
-  if (Array.isArray(mod?.default)) return mod.default;
-  console.error('[%s] Los datos de precios no llegaron como lista:', NOMBRE, typeof mod);
-  return [];
-}
-const talleres = comoLista(talleresRaw);
+// Ver la nota en generar-datos-pago.mjs: según cómo empaquete Netlify, el módulo de
+// datos llega como el arreglo directo o envuelto; comoLista() tolera las dos formas.
+const talleres = comoLista(talleresRaw, NOMBRE);
 
 // Esta función SOLO arma el link de pago — el registro del contacto en Brevo y los
 // correos de confirmación los sigue haciendo brevo-sync.js (el formulario le pega a

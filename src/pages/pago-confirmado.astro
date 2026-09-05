@@ -1,6 +1,5 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import WhatsAppBanner from '../components/WhatsAppBanner.astro';
 ---
 
 <Layout title="Pago confirmado" description="Confirmación de pago — Inefable ALRO" noindex>
@@ -11,12 +10,14 @@ import WhatsAppBanner from '../components/WhatsAppBanner.astro';
       <h1 class="reveal" data-estado-titulo>Un momento…</h1>
       <p class="confirmado__sub reveal" data-estado-texto>Estamos confirmando tu pago.</p>
 
-      <div class="confirmado__whatsapp reveal">
-        <WhatsAppBanner
-          texto="Para coordinar los detalles de tu pedido, escríbenos:"
-          mensaje="¡Hola! Acabo de pagar en la página y quiero coordinar los detalles de mi pedido 🕯️"
-        />
-      </div>
+      <p class="confirmado__numero reveal" data-numero-caja hidden>
+        Número de pedido: <strong data-numero-pedido></strong>
+      </p>
+
+      <p class="confirmado__ayuda reveal">
+        ¿Algo no cuadra con tu pedido?
+        <a href="https://wa.me/573021101969?text=%C2%A1Hola!%20Tengo%20una%20duda%20sobre%20mi%20pedido%20%F0%9F%95%AF%EF%B8%8F" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
+      </p>
 
       <div class="confirmado__links reveal">
         <a href="/tienda" class="btn btn-ghost">Volver al catálogo</a>
@@ -42,16 +43,31 @@ import WhatsAppBanner from '../components/WhatsAppBanner.astro';
 
       const cosa = tipo === 'taller' ? 'tu cupo en el taller' : 'tu pedido';
 
+      // Mercado Pago devuelve el numero de pedido que le mandamos como referencia.
+      const numeroPedido = params.get('external_reference') || '';
+      const cajaNumero = document.querySelector('[data-numero-pedido]');
+      if (cajaNumero && /^IA-/.test(numeroPedido)) {
+        cajaNumero.textContent = numeroPedido;
+        (cajaNumero.closest('[data-numero-caja]') as HTMLElement).hidden = false;
+      }
+
       if (estado === 'pending' || estado === 'in_process') {
         kicker.textContent = 'Pago en proceso';
         titulo.textContent = 'Estamos confirmando tu pago';
-        texto.textContent = `Tu pago está siendo revisado. Apenas se confirme, nos ponemos en contacto por WhatsApp para coordinar ${cosa}.`;
+        texto.textContent = `Tu pago está siendo revisado. Apenas se confirme te escribimos por correo con la confirmación de ${cosa}.`;
       } else {
         // Por defecto asumimos aprobado: Mercado Pago solo trae hasta acá con
         // auto_return cuando el pago quedó aprobado (o cuando entra manual sin ese dato).
         kicker.textContent = '¡Pago confirmado!';
         titulo.textContent = 'Gracias por tu compra';
-        texto.textContent = `Ya recibimos tu pago. Ahora coordinamos por WhatsApp los detalles de ${cosa} — fecha, dirección o entrega, según corresponda.`;
+        // Ya pagó y ya dejó sus datos: no hay nada que "coordinar". Mandarlo a
+        // WhatsApp acá sobra y hace sentir que el pedido quedó a medias.
+        texto.textContent = tipo === 'taller'
+          ? 'Ya recibimos tu pago y tu cupo quedó reservado. Te enviamos la confirmación por correo con todos los detalles del taller.'
+          : 'Ya recibimos tu pago y tu pedido está en preparación. Te enviamos la confirmación por correo con el detalle de lo que compraste.';
+
+        // El pedido se completó: el carrito ya cumplió su función.
+        try { (window as any).carritoInefable?.vaciar(); } catch (e) { /* da igual */ }
       }
     }
 
@@ -69,7 +85,21 @@ import WhatsAppBanner from '../components/WhatsAppBanner.astro';
     }
     .confirmado__content { max-width: 620px; }
     .confirmado__sub { font-size: 1.05rem; margin-top: 16px; max-width: 480px; }
-    .confirmado__whatsapp { margin-top: 36px; max-width: 480px; }
+    .confirmado__numero {
+      margin-top: 26px;
+      padding: 12px 16px;
+      display: inline-block;
+      background: var(--bg-3);
+      border-left: 2px solid var(--accent);
+      font-size: 0.9rem;
+      color: var(--cream-2);
+    }
+    .confirmado__numero[hidden] { display: none; }
+    .confirmado__numero strong { color: var(--cream); letter-spacing: 0.04em; }
+    /* WhatsApp queda como salida de emergencia, no como el siguiente paso: el
+       pedido ya está cerrado y pagado. */
+    .confirmado__ayuda { margin-top: 30px; font-size: 0.88rem; color: var(--cream-3); }
+    .confirmado__ayuda a { color: var(--accent); text-decoration: underline; }
     .confirmado__links { margin-top: 28px; display: flex; gap: 14px; flex-wrap: wrap; }
   </style>
 </Layout>

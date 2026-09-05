@@ -6,3 +6,7 @@ dist/
 
 # Generado en cada build por scripts/generar-datos-pago.mjs — no es la fuente de la verdad
 netlify/functions/data/
+
+# Miniaturas JPG para los correos, generadas en cada build por
+# scripts/generar-miniaturas-correo.mjs (las fotos reales sí están en git)
+public/images/productos/correo/

@@ -1,19 +1,9 @@
 import { crearPreferencia, siteUrl } from './lib/mercadopago.js';
+import { comoLista, resolverPedido, resumenTexto } from './lib/pedido.js';
 import productosRaw from './data/productos.cjs';
 
 const NOMBRE = 'pago-producto';
-// El archivo de precios se genera en el build (scripts/generar-datos-pago.mjs). Se
-// importa, no se lee del disco, y se normaliza a un arreglo antes de usarlo: según cómo
-// lo empaquete Netlify, el mismo `import` puede llegar como el arreglo directo o
-// envuelto en un objeto con .default. Confiar en una sola de esas formas tumbó la
-// función en producción (2026-09-05). Ver el detalle en generar-datos-pago.mjs.
-function comoLista(mod) {
-  if (Array.isArray(mod)) return mod;
-  if (Array.isArray(mod?.default)) return mod.default;
-  console.error('[%s] Los datos de precios no llegaron como lista:', NOMBRE, typeof mod);
-  return [];
-}
-const productos = comoLista(productosRaw);
+const productos = comoLista(productosRaw, NOMBRE);
 
 // Por ahora el pago en línea solo aplica a entregas en Bogotá (domicilio con tarifa
 // fija incluida en el cobro). Pedidos a otras ciudades siguen el flujo de siempre:
@@ -44,28 +34,47 @@ export const handler = async (event) => {
     return { statusCode: 400, body: 'Invalid payload' };
   }
 
-  const { productoSlug, variantePresentacion, cantidad, nombre, correo, zonaBogota } = data;
-  const producto = productos.find((p) => p.slug === productoSlug);
-  const variante = producto?.variantes.find((v) => v.presentacion === variantePresentacion);
-
-  if (!producto || !variante || variante.precio === undefined) {
-    console.error('[pago-producto] Producto/variante no encontrado o sin precio fijo:', productoSlug, variantePresentacion);
-    return { statusCode: 400, body: 'Producto no disponible para pago en línea' };
-  }
+  const { nombre, correo, zonaBogota, numeroPedido } = data;
   if (!correo) {
     return { statusCode: 400, body: 'Missing email' };
   }
 
-  const cantidadNum = Math.max(1, Math.min(50, Number(cantidad) || 1));
+  // Dos formas de pedir: el carrito manda una lista; el formulario viejo de la página
+  // de producto manda un solo producto suelto. Se normalizan a lo mismo para que de
+  // aquí en adelante haya un único camino. (El formulario viejo se retira en Carrito-3.)
+  const crudo = data.pedido
+    ? data.pedido
+    : data.productoSlug
+      ? [{ s: data.productoSlug, p: data.variantePresentacion, c: data.cantidad }]
+      : null;
+
+  if (!crudo) {
+    console.error('[pago-producto] Payload sin pedido ni producto:', JSON.stringify(data).slice(0, 200));
+    return { statusCode: 400, body: 'Pedido vacío' };
+  }
+
+  const { lineas, subtotal, hayCotizacion, invalido } = resolverPedido(crudo, productos);
+
+  if (invalido) {
+    console.error('[pago-producto] Ningún producto del pedido existe en el catálogo:', JSON.stringify(crudo).slice(0, 200));
+    return { statusCode: 400, body: 'Pedido no disponible para pago en línea' };
+  }
+
+  // Doble chequeo (el navegador ya lo evita, pero no se le cree): un pedido con algo
+  // por cotizar no tiene precio final, así que no puede cobrarse en línea.
+  if (hayCotizacion) {
+    console.error('[pago-producto] El pedido incluye productos por cotización, no se cobra en línea:', resumenTexto(lineas));
+    return { statusCode: 400, body: 'Pedido no disponible para pago en línea' };
+  }
+
   const envio = zonaBogota === 'norte' ? ENVIO_BOGOTA_NORTE_COP : ENVIO_BOGOTA_RESTO_COP;
 
-  const items = [
-    {
-      title: `${producto.nombre} — ${variante.presentacion}`,
-      quantity: cantidadNum,
-      unit_price: variante.precio,
-    },
-  ];
+  const items = lineas.map((l) => ({
+    title: `${l.nombre} — ${l.presentacion}`,
+    quantity: l.cantidad,
+    unit_price: l.precio,
+  }));
+
   // Mercado Pago no acepta ítems con precio $0 — si el envío es gratis (norte de
   // Bogotá), simplemente no se agrega la línea de domicilio.
   if (envio > 0) {
@@ -77,13 +86,17 @@ export const handler = async (event) => {
       accessToken,
       items,
       payer: { name: nombre || undefined, email: correo },
-      externalReference: `producto:${producto.slug}:${correo}`,
+      // El número de pedido es la única forma de cruzar un pago del panel de Mercado
+      // Pago con el pedido que llegó por correo y con la fila de la hoja de cálculo.
+      externalReference: numeroPedido || `producto:${lineas[0].slug}:${correo}`,
       backUrls: {
         success: `${siteUrl()}/pago-confirmado?tipo=producto`,
         pending: `${siteUrl()}/pago-confirmado?tipo=producto`,
-        failure: `${siteUrl()}/tienda?pago=fallido`,
+        failure: `${siteUrl()}/carrito?pago=fallido`,
       },
     });
+
+    console.log(`[pago-producto] Preferencia creada para ${numeroPedido || 'sin número'}: ${lineas.length} línea(s), subtotal ${subtotal} + envío ${envio}`);
 
     return {
       statusCode: 200,

@@ -46,6 +46,10 @@ const productos = leerColeccion('productos')
   .map((p) => ({
     slug: p.slug,
     nombre: p.nombre,
+    // La imagen viaja hasta las funciones para armar la tabla del correo de
+    // confirmación. Se guarda el slug del archivo, no la ruta: el correo usa la
+    // miniatura JPG (public/images/productos/correo/), no la WebP del sitio.
+    imagen: p.imagen,
     variantes: (p.variantes || []).map((v) => ({ presentacion: v.presentacion, precio: v.precio })),
   }));
 
