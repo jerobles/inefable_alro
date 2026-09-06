@@ -2,10 +2,10 @@
 nombre: Velas Aromáticas Edición Cóctel — ¡Elige tu favorito!
 categoria: bebidas-frias
 descripcion: "¡El happy hour más original para tu hogar! Piezas hiperrealistas
-  que capturan la frescura vibrante de tus bebidas favoritas: Mojito (fresco,
-  herbal y cítrico), Sunrise (un amanecer vibrante y frutal) o Mango Sunrise (la
-  versión más dulce y tropical). ¿Tienes un cóctel favorito en mente? Cuéntanos
-  y lo transformamos en una vela exclusiva para ti."
+  que capturan la frescura vibrante de tus bebidas favoritas. Elige entre cinco
+  versiones: Mojito Fresco, Mojito Herbal, Mojito Cítrico, Sunrise (un amanecer
+  vibrante y frutal) o Mango Sunrise (la más dulce y tropical). ¿Tienes un cóctel
+  favorito en mente? Cuéntanos y lo transformamos en una vela exclusiva para ti."
 detallesTecnicos: Elaboradas artesanalmente con cera de gel cristalina de alta
   calidad, logrando un impecable acabado transparente con efecto de hielo y
   bebida fría. Utilizamos pabilo 100% de algodón natural para un quemado limpio.
