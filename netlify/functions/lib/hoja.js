@@ -39,18 +39,37 @@ export async function registrarEnHoja(fila) {
 
     const texto = await respuesta.text();
     if (!respuesta.ok) {
-      console.error('[hoja] La hoja respondió %s: %s', respuesta.status, texto.slice(0, 200));
+      console.error('[hoja] La hoja respondió %s: %s', respuesta.status, texto.slice(0, 300));
       return `la hoja respondió ${respuesta.status}`;
     }
-    // El script devuelve {"ok":true}. Si llega otra cosa (típicamente el HTML de la
-    // pantalla de login de Google), es que la implementación no quedó pública.
-    if (!texto.includes('"ok":true')) {
-      console.error('[hoja] Respuesta inesperada de la hoja:', texto.slice(0, 200));
-      return 'la hoja no aceptó la fila (revisa que la implementación sea pública)';
+
+    // Tres respuestas posibles, y cada una apunta a un problema distinto. Distinguirlas
+    // importa: mandar a revisar la implementación cuando lo que falla es la clave hace
+    // perder el tiempo buscando donde no es.
+    if (texto.includes('"ok":true')) {
+      console.log('[hoja] Pedido %s registrado en la hoja', fila.numeroPedido || '(sin número)');
+      return null;
     }
 
-    console.log('[hoja] Pedido %s registrado en la hoja', fila.numeroPedido || '(sin número)');
-    return null;
+    // 2) El script contestó, pero rechazó la fila (casi siempre: la clave de Netlify y
+    //    la del script no son idénticas).
+    try {
+      const json = JSON.parse(texto);
+      if (json && json.ok === false) {
+        console.error('[hoja] La hoja rechazó la fila:', json.error);
+        return json.error === 'clave incorrecta'
+          ? 'la clave del script y la de HOJA_PEDIDOS_TOKEN no coinciden'
+          : `la hoja rechazó la fila: ${json.error}`;
+      }
+    } catch (err) {
+      /* no era JSON: cae al caso de abajo */
+    }
+
+    // 3) No es JSON — típicamente el HTML de la pantalla de permisos de Google, que es
+    //    lo que se recibe cuando la implementación no quedó pública ("Cualquier usuario").
+    console.error('[hoja] Respuesta inesperada de la hoja:', texto.slice(0, 300));
+    return 'la implementación del script no es pública (debe ser "Cualquier usuario")';
+
   } catch (err) {
     const motivo = err.name === 'AbortError' ? 'la hoja no respondió a tiempo' : err.message;
     console.error('[hoja] No se pudo registrar el pedido en la hoja:', motivo);

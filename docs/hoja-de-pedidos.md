@@ -82,6 +82,12 @@ function doPost(e) {
   }
 }
 
+// Abrir la URL en el navegador cae aquí. Sirve para comprobar, sin hacer un pedido,
+// que la implementación quedó bien publicada.
+function doGet() {
+  return responder({ ok: true, mensaje: 'La hoja está lista para recibir pedidos.' });
+}
+
 function responder(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(
     ContentService.MimeType.JSON
@@ -102,6 +108,21 @@ Reemplaza `PEGA-AQUI-TU-CLAVE` por la clave del paso 2 y guarda (💾).
    una advertencia de "app no verificada": es tu propio script, entra en
    *Configuración avanzada → Ir a (nombre del proyecto)*.
 5. Copia la **URL de la aplicación web** (termina en `/exec`).
+
+### Comprueba que quedó bien, antes de seguir
+
+Pega esa URL en el navegador y ábrela. Deberías ver exactamente esto:
+
+```json
+{"ok":true,"mensaje":"La hoja está lista para recibir pedidos."}
+```
+
+| Lo que ves | Qué pasa |
+|---|---|
+| El `{"ok":true…}` | Perfecto, sigue al paso 5 |
+| Una pantalla de Google pidiendo iniciar sesión o dar permiso | La implementación **no quedó pública**. Vuelve al paso 4 y pon "Quién tiene acceso: Cualquier usuario" |
+| "Se requiere autorización" | Falta autorizar el script. Vuelve a **Implementar** y acepta los permisos |
+| Un error de página no encontrada | La URL está mal copiada, o es la de `/dev` en vez de la de `/exec` |
 
 > **"Cualquier usuario" suena peligroso, ¿lo es?** Solo si alguien adivina tu URL
 > *y* tu clave. Sin la clave correcta, el script rechaza todo. Y aunque acertara,

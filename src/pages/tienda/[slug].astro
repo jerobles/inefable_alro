@@ -1,6 +1,5 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import FormPedido from '../../components/FormPedido.astro';
 import AgregarCarrito from '../../components/AgregarCarrito.astro';
 import { getCollection } from 'astro:content';
 
@@ -123,13 +122,10 @@ const descripcionSeo = `${p.descripcion}${p.notasOlfativas ? ` Notas: ${p.notasO
             </div>
           )}
 
-          <a href="#form-producto" class="btn btn-ghost producto__cta">Prefiero coordinarlo por WhatsApp</a>
         </div>
       </div>
     </div>
   </section>
-
-  <FormPedido productos={productos} productoFijo={producto} />
 
   {relacionados.length > 0 && (
     <section class="relacionados section-light">
