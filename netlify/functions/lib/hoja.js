@@ -38,6 +38,14 @@ export async function registrarEnHoja(fila) {
     });
 
     const texto = await respuesta.text();
+
+    // 401/403 con el HTML de la pantalla de permisos de Google = la implementación no
+    // quedó publicada como "Cualquier usuario". Es el error más común al configurarla,
+    // y decir solo "respondió 401" no le sirve a nadie para arreglarlo.
+    if (respuesta.status === 401 || respuesta.status === 403) {
+      console.error('[hoja] Google respondió %s (pantalla de permisos): la implementación no es pública', respuesta.status);
+      return 'la implementación del script no es pública — en Apps Script, "Quién tiene acceso" debe ser "Cualquier usuario"';
+    }
     if (!respuesta.ok) {
       console.error('[hoja] La hoja respondió %s: %s', respuesta.status, texto.slice(0, 300));
       return `la hoja respondió ${respuesta.status}`;
