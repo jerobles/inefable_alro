@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "astro dev",
     "build": "node scripts/generar-datos-pago.mjs && node scripts/generar-miniaturas-correo.mjs && astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "fotos": "node scripts/optimizar-fotos.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.2.1",

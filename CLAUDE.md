@@ -51,6 +51,8 @@ src/
     terminos.astro
 scripts/
   generar-datos-pago.mjs      ← corre antes de "astro build" (ver package.json): exporta precios de talleres/productos a netlify/functions/data/*.cjs, para que las funciones de pago calculen el monto sin confiar en lo que mande el navegador
+  generar-miniaturas-correo.mjs ← también en el build: miniaturas JPG 160px para los correos (WebP no sirve en correo, ver más abajo)
+  optimizar-fotos.mjs          ← **NO corre en el build, se usa a mano.** `npm run fotos -- "ruta/a/la/carpeta"` deja las fotos listas para subir por /admin: las achica a 1080px, las pasa a WebP y les limpia el nombre (quita tildes y espacios). Escribe en una subcarpeta "optimizadas" sin tocar los originales. Avisa si encuentra HEIC de iPhone, que sharp no abre. Reemplaza los scripts de un solo uso que antes se escribían y se botaban cada vez que llegaban fotos nuevas.
 netlify/
   functions/
     data/*.cjs                 ← generado en cada build por el script de arriba, NO se sube a git (.gitignore). CommonJS a propósito, ver la convención de "Funciones de Netlify" más abajo
