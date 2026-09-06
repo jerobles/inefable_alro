@@ -8,6 +8,7 @@ import {
   hoyISO,
 } from './lib/brevo.js';
 import { comoLista, resolverPedido, tablaPedidoHtml, resumenTexto, formatCOP, ENTREGA_LABEL } from './lib/pedido.js';
+import { registrarEnHoja } from './lib/hoja.js';
 import productosRaw from './data/productos.cjs';
 
 const NOMBRE = 'producto-sync';
@@ -120,6 +121,26 @@ export const handler = async (event) => {
     console.error('[producto-sync] No se pudo guardar el contacto en Brevo, se continúa con los correos', err);
   }
 
+  // La hoja de cálculo: el registro que el usuario mira para saber qué producir y
+  // despachar, y que puede compartir con su cliente. Si falla, NO se corta nada: el
+  // pedido ya está en Netlify, en el CRM y en los correos. El aviso interno lo dice.
+  const errorHoja = await registrarEnHoja({
+    fecha: new Date().toISOString(),
+    numeroPedido,
+    estado: 'Nuevo',
+    cliente: nombre,
+    whatsapp: whatsappLead || '',
+    correo: email,
+    productos: descripcionCorta,
+    subtotal,
+    envio: envio === null ? '' : envio,
+    total: esBogota && !hayCotizacion ? total : '',
+    zona: ENTREGA_LABEL[entrega] || 'A coordinar',
+    direccion,
+    notas,
+    pago: esBogota && !hayCotizacion ? 'En línea (confirmar en Mercado Pago)' : 'Por coordinar',
+  });
+
   const tabla = lineas.length > 0
     ? tablaPedidoHtml({ lineas, subtotal, envio, total, entrega, hayCotizacion })
     : `<p style="font-size:14px;color:#201a12;">${descripcionCorta}</p>`;
@@ -180,6 +201,7 @@ export const handler = async (event) => {
             : '<p style="font-size:13px;color:#a86a2e;">Este pedido NO se cobró en línea: hay que cotizar y coordinar por WhatsApp.</p>'
         }
         ${waLink ? `<p><a href="${waLink}" style="display:inline-block;background:#25D366;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">Escríbele por WhatsApp →</a></p>` : ''}
+        ${errorHoja ? `<p style="margin-top:16px;padding:12px;background:#fff4e5;border-left:3px solid #c98a45;font-size:13px;">⚠️ Este pedido <strong>no quedó en la hoja de cálculo</strong> (${errorHoja}). Agrégalo a mano cuando puedas — los datos de arriba son la referencia.</p>` : ''}
         ${errorContacto ? `<p style="margin-top:20px;padding:12px;background:#fff4e5;border-left:3px solid #c98a45;font-size:13px;">⚠️ Este pedido <strong>no se pudo guardar en Brevo</strong>, así que no aparecerá en la lista de contactos. Los datos de arriba son la única copia — agrégalo a mano si lo necesitas. Motivo: ${errorContacto.message}</p>` : ''}
       `,
     });
