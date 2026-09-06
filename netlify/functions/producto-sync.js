@@ -53,10 +53,12 @@ export const handler = async (event) => {
   const entrega = data.entrega || 'otra';
   const numeroPedido = data['numero-pedido'] || data.numeroPedido || '';
 
-  // El pedido puede venir del carrito (una lista) o del formulario viejo de la página
-  // de producto (un producto suelto). Se normalizan a lo mismo, y en ambos casos el
-  // nombre, el precio y la foto salen del CATÁLOGO DEL SERVIDOR, no del navegador:
-  // así el correo nunca puede mostrar algo distinto de lo que se cobró.
+  // El pedido llega como una lista (el carrito). Se sigue aceptando el formato viejo
+  // de un producto suelto porque el formulario que lo enviaba se retiró el 2026-09-06
+  // y una página cacheada en el navegador de alguien puede seguir mandándolo un rato;
+  // perder ese pedido por no leerlo sería absurdo.
+  // En los dos casos el nombre, el precio y la foto salen del CATÁLOGO DEL SERVIDOR,
+  // no del navegador: así el correo nunca muestra algo distinto de lo que se cobró.
   const crudo = data.pedido
     ? data.pedido
     : data.producto

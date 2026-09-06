@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import FormPedido from '../../components/FormPedido.astro';
+import WhatsAppBanner from '../../components/WhatsAppBanner.astro';
 import { getCollection } from 'astro:content';
 
 const allProductos = await getCollection('productos');
@@ -101,11 +101,20 @@ const listSchema = {
     </section>
   ))}
 
-  <FormPedido productos={productos} />
+  <section class="tienda-ayuda">
+    <div class="container">
+      <WhatsAppBanner
+        texto="¿Buscas algo que no está en el catálogo?"
+        mensaje="¡Hola! Quiero preguntar por algo del catálogo de Inefable ALRO 🕯️"
+      />
+    </div>
+  </section>
 
   <style>
     .tienda-hero { position: relative; padding: 180px 0 80px; background: var(--bg-2); }
     .tienda-hero__sub { max-width: 560px; margin-top: 18px; font-size: 1.05rem; }
+
+    .tienda-ayuda { padding: 20px 0 80px; }
 
     .tienda-grupo { padding: 56px 0; }
     .tienda-grupo h2 { margin-bottom: 28px; }

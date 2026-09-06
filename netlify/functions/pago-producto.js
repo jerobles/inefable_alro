@@ -39,9 +39,10 @@ export const handler = async (event) => {
     return { statusCode: 400, body: 'Missing email' };
   }
 
-  // Dos formas de pedir: el carrito manda una lista; el formulario viejo de la página
-  // de producto manda un solo producto suelto. Se normalizan a lo mismo para que de
-  // aquí en adelante haya un único camino. (El formulario viejo se retira en Carrito-3.)
+  // El carrito manda una lista. Se sigue aceptando un producto suelto porque el
+  // formulario que lo enviaba se retiró el 2026-09-06 y una página cacheada en el
+  // navegador de alguien puede seguir mandándolo un rato. Se normalizan a lo mismo
+  // para que de aquí en adelante haya un único camino.
   const crudo = data.pedido
     ? data.pedido
     : data.productoSlug

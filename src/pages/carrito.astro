@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import WhatsAppBanner from '../components/WhatsAppBanner.astro';
 
-// Mismos valores por defecto que netlify/functions/pago-producto.js y FormPedido.astro.
+// Mismos valores por defecto que netlify/functions/pago-producto.js.
 const envioNorte = Number(import.meta.env.ENVIO_BOGOTA_NORTE_COP) || 0;
 const envioResto = Number(import.meta.env.ENVIO_BOGOTA_RESTO_COP) || 15000;
 const formatPrecio = (n: number) => n.toLocaleString('es-CO');
@@ -476,8 +476,7 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
   }
   .pedido-pagina__seguir:hover { color: var(--accent); }
 
-  /* Campos del checkout. phone-field y hidden-field se repiten aquí porque los
-     estilos de FormPedido.astro son scoped y no alcanzan a esta página. */
+  /* Campos del checkout. */
   .pedido-pagina__datos {
     display: flex;
     flex-direction: column;
