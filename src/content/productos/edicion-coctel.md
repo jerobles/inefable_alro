@@ -14,7 +14,15 @@ modoDeUso: "Disfruta del increíble espectáculo visual que crea la llama a trav
   apágala tras 2 horas continuas. Advertencia: mantener fuera del alcance de
   niños y mascotas."
 variantes:
-  - presentacion: Unidad
+  - presentacion: Mojito Fresco
+    precio: 54000
+  - presentacion: Mojito Herbal
+    precio: 54000
+  - presentacion: Mojito Cítrico
+    precio: 54000
+  - presentacion: Sunrise
+    precio: 54000
+  - presentacion: Mango Sunrise
     precio: 54000
 imagen: /images/productos/velas-coctel.webp
 destacado: false
