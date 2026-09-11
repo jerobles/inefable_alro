@@ -2,9 +2,9 @@
 const links = [
   { href: '/', label: 'Inicio' },
   { href: '/#historia', label: 'Nuestra historia' },
-  { href: '/tienda', label: 'Tienda' },
-  { href: '/curso', label: 'Taller de velas' },
-  { href: '/blog', label: 'Blog' },
+  { href: '/tienda/', label: 'Tienda' },
+  { href: '/curso/', label: 'Taller de velas' },
+  { href: '/blog/', label: 'Blog' },
 ];
 ---
 
@@ -34,8 +34,8 @@ const links = [
         <a href={link.href}>{link.label}</a>
       ))}
       <div class="site-header__ctas">
-        <a href="/tienda" class="btn btn-ghost site-header__cta">Ver catálogo</a>
-        <a href="/curso" class="btn btn-primary site-header__cta">Reserva tu cupo</a>
+        <a href="/tienda/" class="btn btn-ghost site-header__cta">Ver catálogo</a>
+        <a href="/curso/" class="btn btn-primary site-header__cta">Reserva tu cupo</a>
       </div>
     </nav>
   </div>

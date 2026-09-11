@@ -24,4 +24,4 @@ Antes de encender una vela, vale la pena pensar en qué momento quieres construi
 
 En Inefable ALRO seleccionamos cada fragancia por su impacto real en los sentidos, no solo por lo bien que huele en frío. Buscamos notas que se liberen de manera equilibrada, para que la atmósfera se sienta persistente pero nunca abrumadora.
 
-Si quieres vivir esta experiencia de cerca, te invitamos a nuestro [Taller de Velas](/curso), donde no solo aprenderás a crear tu propia vela, sino a pensar el aroma como una herramienta de diseño para tu espacio.
+Si quieres vivir esta experiencia de cerca, te invitamos a nuestro [Taller de Velas](/curso/), donde no solo aprenderás a crear tu propia vela, sino a pensar el aroma como una herramienta de diseño para tu espacio.

@@ -69,7 +69,7 @@ const listSchema = {
         <h2 class="reveal">{grupo.label}</h2>
         <div class="tienda-grid">
           {grupo.items.map((p) => (
-            <a class="prod-card reveal" href={`/tienda/${p.slug}`}>
+            <a class="prod-card reveal" href={`/tienda/${p.slug}/`}>
               <div class="prod-card__img">
                 {p.data.imagen ? (
                   <img src={p.data.imagen} alt={p.data.nombre} width="1080" height="1350" loading="lazy" />

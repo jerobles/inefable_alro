@@ -43,8 +43,8 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
         cualquier espacio en un refugio de serenidad.
       </p>
       <div class="hero__actions reveal">
-        <a href="/curso" class="btn btn-primary">Reserva el taller de velas</a>
-        <a href="/tienda" class="btn btn-ghost">Ver el catálogo</a>
+        <a href="/curso/" class="btn btn-primary">Reserva el taller de velas</a>
+        <a href="/tienda/" class="btn btn-ghost">Ver el catálogo</a>
       </div>
     </div>
   </section>
@@ -83,7 +83,7 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
       </div>
       <div class="destacados__grid">
         {destacados.map((p) => (
-          <a class="destacados__card reveal" href={`/tienda/${p.slug}`}>
+          <a class="destacados__card reveal" href={`/tienda/${p.slug}/`}>
             {p.data.imagen && <img src={p.data.imagen} alt={p.data.nombre} width="1080" height="1350" loading="lazy" />}
             <div class="destacados__card-body">
               <h3>{p.data.nombre}</h3>
@@ -98,7 +98,7 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
         ))}
       </div>
       <div class="destacados__cta reveal">
-        <a href="/tienda" class="btn btn-primary">Ver catálogo completo</a>
+        <a href="/tienda/" class="btn btn-primary">Ver catálogo completo</a>
       </div>
     </div>
   </section>
@@ -143,7 +143,7 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
         <span class="kicker">Próximo evento</span>
         <h2>Taller de velas</h2>
         <p>Un espacio para ti, tu creatividad y tus sentidos. Aprende a crear tu propia vela artesanal, con materiales, snacks y kit de trabajo incluidos.</p>
-        <a href="/curso" class="btn btn-primary">Ver fechas y reservar</a>
+        <a href="/curso/" class="btn btn-primary">Ver fechas y reservar</a>
       </div>
       <div class="taller__img reveal">
         <video

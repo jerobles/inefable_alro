@@ -23,4 +23,4 @@ Una fragancia mal dosificada puede saturar un espacio pequeño o desaparecer en 
 
 Una vela artesanal bien hecha no es solo un objeto que arde: es un recipiente reutilizable, un aroma bien pensado y una combustión limpia. Es, literalmente, el diseño de un momento.
 
-¿Quieres aprender a hacer la tuya? Conoce las fechas de nuestro [Taller de Velas](/curso).
+¿Quieres aprender a hacer la tuya? Conoce las fechas de nuestro [Taller de Velas](/curso/).

@@ -62,7 +62,7 @@ const descripcionSeo = `${p.descripcion}${p.notasOlfativas ? ` Notas: ${p.notasO
   <section class="producto">
     <div class="container">
       <nav class="producto__migas reveal" aria-label="Ruta de navegación">
-        <a href="/tienda">Catálogo</a>
+        <a href="/tienda/">Catálogo</a>
         <span aria-hidden="true">/</span>
         <span>{CATEGORIA_LABEL[p.categoria] ?? p.categoria}</span>
       </nav>
@@ -133,7 +133,7 @@ const descripcionSeo = `${p.descripcion}${p.notasOlfativas ? ` Notas: ${p.notasO
         <h2 class="reveal">También en {CATEGORIA_LABEL[p.categoria] ?? p.categoria}</h2>
         <div class="relacionados__grid">
           {relacionados.map((otro) => (
-            <a class="relacionados__card reveal" href={`/tienda/${otro.slug}`}>
+            <a class="relacionados__card reveal" href={`/tienda/${otro.slug}/`}>
               {otro.data.imagen && <img src={otro.data.imagen} alt={otro.data.nombre} width="1080" height="1350" loading="lazy" />}
               <div class="relacionados__body">
                 <h3>{otro.data.nombre}</h3>
@@ -142,7 +142,7 @@ const descripcionSeo = `${p.descripcion}${p.notasOlfativas ? ` Notas: ${p.notasO
           ))}
         </div>
         <div class="relacionados__cta reveal">
-          <a href="/tienda" class="btn btn-ghost">Ver todo el catálogo</a>
+          <a href="/tienda/" class="btn btn-ghost">Ver todo el catálogo</a>
         </div>
       </div>
     </section>

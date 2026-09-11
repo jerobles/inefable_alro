@@ -19,7 +19,7 @@ const dateFmt = (d: Date) => d.toLocaleDateString('es-CO', { day: 'numeric', mon
   <section class="blog-list section-light">
     <div class="container blog-list__grid">
       {posts.map((post) => (
-        <a href={`/blog/${post.slug}`} class="blog-card reveal">
+        <a href={`/blog/${post.slug}/`} class="blog-card reveal">
           {post.data.image && <img src={post.data.image} alt={post.data.title} />}
           <div class="blog-card__body">
             <span class="blog-card__date">{dateFmt(post.data.date)}</span>
