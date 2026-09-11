@@ -16,3 +16,14 @@
     X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+# El subdominio que Netlify asigna por defecto seguia sirviendo el sitio completo, o
+# sea que estaba publicado en dos direcciones a la vez. Google lo veia como contenido
+# duplicado. Con esto rebota al dominio real. El "from" incluye el host, asi que solo
+# afecta a ese subdominio: las vistas previas de cada deploy (deploy-preview-N--...)
+# no se tocan. "force" es necesario porque los archivos si existen ahi.
+[[redirects]]
+  from = "https://preeminent-mermaid-8418d4.netlify.app/*"
+  to = "https://inefablealro.com/:splat"
+  status = 301
+  force = true
