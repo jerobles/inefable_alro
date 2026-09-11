@@ -220,11 +220,16 @@ solo debe consultar y marcar estados, dale permiso de **Editor** sobre la hoja p
 - **La columna "Total" viene vacía** cuando el pedido no tiene precio cerrado
   (otra ciudad, o productos por cotización): en esos casos el valor final aún no
   existe. La columna "Pago" te dice cuál es cuál.
-- **"Pago: En línea (confirmar en Mercado Pago)"** no significa que el pago se haya
-  completado — significa que el pedido fue por ese camino. El sitio no puede saber
-  si el pago se aprobó (eso necesitaría el webhook de Mercado Pago, que está
-  pendiente). **Confirma en el panel de Mercado Pago buscando el número de pedido
-  antes de despachar.**
+- **La columna "Pago" se actualiza sola** cuando Mercado Pago confirma (pasa a
+  `Pagado ✓`, o a `Pago rechazado` si no se aprobó). Eso lo hace el webhook, y para
+  que funcione hace falta que el script esté en su **versión nueva** (la de arriba, con
+  la acción `actualizarPago`) y que esté puesta la clave `MP_WEBHOOK_SECRET` en Netlify.
+  - **"En línea (confirmar en Mercado Pago)"** es el valor con el que nace la fila:
+    significa que el pedido fue por ese camino, **no** que el pago se completó. Mientras
+    la fila siga así, **confirma en el panel de Mercado Pago buscando el número de pedido
+    antes de despachar.**
+  - El sitio **nunca toca la columna Estado**, solo la de Pago: si ya moviste el pedido a
+    "Despachado", un aviso tardío no te lo devuelve atrás.
 - **Si modificas el script después**, no basta con guardar: hay que ir a
   **Implementar → Administrar implementaciones**, editar (✏️) y elegir
   **Versión: Nueva versión**. Si no, sigue corriendo la versión vieja.

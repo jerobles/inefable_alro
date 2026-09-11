@@ -1,9 +1,14 @@
 # Confirmación automática del pago (webhook de Mercado Pago)
 
-**Estado: implementado el 2026-09-11** en `netlify/functions/pago-webhook.js`, con
-`lib/firma-mp.js` (validación de firma) y `actualizarPagoEnHoja()` en `lib/hoja.js`.
-Falta que el usuario complete los tres pasos de configuración (ver más abajo) y probarlo
-con un pago real.
+**Estado: implementado y desplegado el 2026-09-11** en `netlify/functions/pago-webhook.js`,
+con `lib/firma-mp.js` (validación de firma) y `actualizarPagoEnHoja()` en `lib/hoja.js`.
+La función responde en producción (`POST` sin firma válida → `401`; `GET` → `405`; un aviso
+que no es de pago → `200` ignorado).
+
+**Falta una sola cosa:** la variable `MP_WEBHOOK_SECRET` en Netlify (paso 1 de abajo). Los
+pasos 2 y 3 ya los hizo el usuario. Hasta que esa clave esté, **todos los avisos se rechazan
+con 401 a propósito** — sin poder verificar la firma no hay forma de distinguir un aviso real
+de uno inventado, así que falla cerrado. Ver esos 401 en el log es lo esperado, no un fallo.
 
 **Lo que disparó hacerlo:** el pedido `IA-260909-AKNQ` llegó por correo y quedó en la
 hoja, pero dos días después no aparecía ningún pago en Mercado Pago. Sin webhook no había
@@ -32,8 +37,8 @@ logs de Netlify solo duran 24 horas, así que ya no se podía averiguar.
 
 ## El problema que resuelve
 
-Hoy el sitio manda a la gente a pagar, pero **nadie le avisa de vuelta si el pago se
-aprobó**. Eso deja tres huecos:
+Antes de esto, el sitio mandaba a la gente a pagar pero **nadie le avisaba de vuelta si el
+pago se aprobó**. Eso dejaba tres huecos:
 
 1. El correo de confirmación dice *"recibimos tu pedido"*, no *"recibimos tu pago"*,
    porque se envía antes de que la persona termine de pagar. No se le puede prometer
@@ -101,21 +106,19 @@ Una función nueva, `netlify/functions/pago-webhook.js`:
 | Brevo | Un atributo nuevo (por ejemplo `ULTIMO_PAGO`, tipo Fecha) que el usuario debe crear a mano en el panel, como los otros. |
 | Variables de Netlify | `MP_WEBHOOK_SECRET`, la clave de firma que da el panel de Mercado Pago. |
 
-## Lo que tiene que hacer el usuario (pendiente)
+## Lo que tiene que hacer el usuario
 
-1. **Mercado Pago → Tus integraciones → tu aplicación → Webhooks.** Registrar la URL
-   `https://inefablealro.com/.netlify/functions/pago-webhook`, marcar el evento **Pagos**,
-   y copiar la **clave secreta** que genera. Ponerla en Netlify como `MP_WEBHOOK_SECRET`.
-   Sin esa variable el webhook rechaza todo con 401 — a propósito: sin firma no hay forma
-   de distinguir un aviso real de uno inventado.
-2. **Brevo → Contactos → Configuración → Atributos:** crear `ULTIMO_PAGO`, tipo **Fecha**.
-3. **Volver a implementar el Apps Script** de la hoja con la versión nueva (la de este
-   repo, en `docs/hoja-de-pedidos.md`), que ya trae la acción `actualizarPago`. Ojo: hay
-   que crear una **implementación nueva**, no solo guardar el código — es el mismo paso
-   que costó la primera vez.
-   - Mientras no se actualice, los pedidos siguen entrando normal (la acción de agregar no
-     cambió) pero el webhook responderá que "el script de la hoja todavía no sabe
-     actualizar pagos", y quedará en los logs.
+1. ⏳ **PENDIENTE — Mercado Pago → Tus integraciones → tu aplicación → Webhooks.** Registrar
+   la URL `https://inefablealro.com/.netlify/functions/pago-webhook`, marcar el evento
+   **Pagos**, y copiar la **clave secreta** que genera. Ponerla en Netlify como
+   `MP_WEBHOOK_SECRET` y redesplegar. Sin esa variable el webhook rechaza todo con 401 — a
+   propósito: sin firma no hay forma de distinguir un aviso real de uno inventado.
+   - El log lo dice tal cual: `Firma rechazada: MP_WEBHOOK_SECRET no está configurado`.
+2. ✅ **Hecho — Brevo → Contactos → Configuración → Atributos:** `ULTIMO_PAGO`, tipo **Fecha**.
+3. ✅ **Hecho (2026-09-11) — Apps Script de la hoja reimplementado** con la versión nueva
+   (la de este repo, en `docs/hoja-de-pedidos.md`), que ya trae la acción `actualizarPago`.
+   Recordatorio para futuros cambios: hay que crear una **implementación nueva**, no solo
+   guardar el código — es el mismo paso que costó la primera vez.
 
 ## Cómo se probó
 
