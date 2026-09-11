@@ -1,7 +1,32 @@
 # Confirmación automática del pago (webhook de Mercado Pago)
 
-**Estado: no implementado.** Este documento describe cómo se haría, para retomarlo
-cuando se decida. No hay código escrito todavía.
+**Estado: implementado el 2026-09-11** en `netlify/functions/pago-webhook.js`, con
+`lib/firma-mp.js` (validación de firma) y `actualizarPagoEnHoja()` en `lib/hoja.js`.
+Falta que el usuario complete los tres pasos de configuración (ver más abajo) y probarlo
+con un pago real.
+
+**Lo que disparó hacerlo:** el pedido `IA-260909-AKNQ` llegó por correo y quedó en la
+hoja, pero dos días después no aparecía ningún pago en Mercado Pago. Sin webhook no había
+forma de saber si la persona había abandonado el checkout o si algo había fallado — y los
+logs de Netlify solo duran 24 horas, así que ya no se podía averiguar.
+
+## Decisiones que se tomaron al implementarlo
+
+- **Solo se toca la columna Pago, nunca Estado.** Estado es del usuario (Nuevo → En
+  producción → Despachado); un aviso tardío que la devolviera a "Pagado" destruiría su
+  trabajo. Esa regla ya venía del diseño de la hoja.
+- **La idempotencia se ancla en la hoja**, que es el único estado compartido que tiene
+  este sitio. El Apps Script solo responde `actualizado: true` cuando la celda de verdad
+  cambió, y el correo de "pago confirmado" únicamente se manda en ese caso. Sin esto,
+  cada reintento de Mercado Pago sería otro correo al cliente.
+- **Si la hoja falla, NO se manda el correo.** No se puede confirmar que sea la primera
+  vez, y repetir un "pago confirmado" es peor que no mandarlo: el pago sigue visible en
+  el panel de Mercado Pago.
+- **Consultar el pago que falla devuelve 500 a propósito** — es el único lugar de toda la
+  integración donde devolver error es correcto, porque ahí sí queremos que Mercado Pago
+  reintente. Todo lo demás responde 200.
+- El `notification_url` se manda **en cada preferencia**, además de dejarlo configurado en
+  el panel: así el aviso queda amarrado al pedido.
 
 ---
 
@@ -76,33 +101,44 @@ Una función nueva, `netlify/functions/pago-webhook.js`:
 | Brevo | Un atributo nuevo (por ejemplo `ULTIMO_PAGO`, tipo Fecha) que el usuario debe crear a mano en el panel, como los otros. |
 | Variables de Netlify | `MP_WEBHOOK_SECRET`, la clave de firma que da el panel de Mercado Pago. |
 
-## Lo que tendría que hacer el usuario
+## Lo que tiene que hacer el usuario (pendiente)
 
-1. En el panel de Mercado Pago, **crear el secreto de firma** del webhook y pasarlo
-   para configurarlo en Netlify.
-2. Crear el atributo nuevo en Brevo.
-3. Volver a implementar el Apps Script con la acción de actualizar (versión nueva, no
-   solo guardar).
+1. **Mercado Pago → Tus integraciones → tu aplicación → Webhooks.** Registrar la URL
+   `https://inefablealro.com/.netlify/functions/pago-webhook`, marcar el evento **Pagos**,
+   y copiar la **clave secreta** que genera. Ponerla en Netlify como `MP_WEBHOOK_SECRET`.
+   Sin esa variable el webhook rechaza todo con 401 — a propósito: sin firma no hay forma
+   de distinguir un aviso real de uno inventado.
+2. **Brevo → Contactos → Configuración → Atributos:** crear `ULTIMO_PAGO`, tipo **Fecha**.
+3. **Volver a implementar el Apps Script** de la hoja con la versión nueva (la de este
+   repo, en `docs/hoja-de-pedidos.md`), que ya trae la acción `actualizarPago`. Ojo: hay
+   que crear una **implementación nueva**, no solo guardar el código — es el mismo paso
+   que costó la primera vez.
+   - Mientras no se actualice, los pedidos siguen entrando normal (la acción de agregar no
+     cambió) pero el webhook responderá que "el script de la hoja todavía no sabe
+     actualizar pagos", y quedará en los logs.
 
-## Cómo se probaría
+## Cómo se probó
 
-El punto delicado es que **no se puede probar de verdad sin pagos reales**, y con
-credenciales de prueba los avisos llegan igual pero desde el entorno de prueba. El
-plan sería:
+**Dry-run del bundle CJS** (como lo empaqueta Netlify, no el fuente ESM — ver la
+convención de "Funciones de Netlify" en CLAUDE.md), con la API de Mercado Pago, Brevo y
+la hoja simuladas. Nueve casos, todos pasando:
 
-1. Dry-run local del bundle, como con las demás funciones, cubriendo: firma inválida,
-   aviso duplicado (idempotencia), pago aprobado, rechazado y pendiente, y fallo de la
-   hoja o de Brevo.
-2. Con credenciales de prueba, un pago completo y verificar que llegue el aviso y se
-   actualice la fila.
-3. Ya en producción, un pago real mínimo, verificando que la hoja pase sola de
-   "En línea (confirmar)" a "Pagado".
+| Caso | Esperado |
+|---|---|
+| Firma inventada | 401, no toca hoja ni correos |
+| Aviso viejo (fuera de la ventana de 15 min) | 401 — corta el reaprovechamiento de un aviso capturado |
+| Pago aprobado, primera vez | marca la hoja, manda el correo, NO toca la columna Estado |
+| El MISMO aviso otra vez | 200 sin segundo correo (idempotencia) |
+| Pago rechazado | avisa internamente, NO le dice al cliente que pagó |
+| Pago pendiente (PSE a medias) | 200 sin hacer nada, espera el aviso definitivo |
+| Aviso de otro tipo (merchant_order) | se ignora, 200 |
+| La API de Mercado Pago falla | **500**, para que Mercado Pago reintente |
+| La hoja falla | 200, pero NO manda el correo de pago confirmado |
 
-## Cuánto pesa
+**Falta la prueba real:** un pago de verdad, verificando que la hoja pase sola de
+"En línea (confirmar en Mercado Pago)" a "Pagado ✓" y que llegue el correo de
+confirmación. No se puede simular: depende de que Mercado Pago mande el aviso a la URL
+registrada en el panel.
 
-Es la pieza más delicada de todo el pago, no por volumen de código sino porque toca
-dinero y tiene que ser a prueba de reintentos y de mensajes falsos. Estimación
-honesta: bastante más trabajo que el carrito completo, casi todo en pruebas.
-
-**Mientras no exista, la regla operativa es la de siempre:** confirmar cada pago en el
-panel de Mercado Pago, buscando el número de pedido, antes de despachar.
+**Hasta que esa prueba pase, la regla operativa sigue siendo la de siempre:** confirmar
+cada pago en el panel de Mercado Pago, buscando el número de pedido, antes de despachar.

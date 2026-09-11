@@ -42,11 +42,19 @@ const ENCABEZADOS = [
   'Subtotal', 'Envío', 'Total', 'Zona', 'Dirección', 'Notas', 'Pago',
 ];
 
+// Columna donde está cada cosa (1 = A). Solo se usan al actualizar un pago.
+const COL_PEDIDO = 2;  // B
+const COL_PAGO = 14;   // N
+
 function doPost(e) {
   try {
     var datos = JSON.parse(e.postData.contents);
     if (!TOKEN || datos.token !== TOKEN) {
       return responder({ ok: false, error: 'clave incorrecta' });
+    }
+
+    if (datos.accion === 'actualizarPago') {
+      return actualizarPago(datos);
     }
 
     var f = datos.fila || {};
@@ -79,6 +87,60 @@ function doPost(e) {
     return responder({ ok: true });
   } catch (err) {
     return responder({ ok: false, error: String(err) });
+  }
+}
+
+// Marca un pedido como pagado cuando Mercado Pago lo confirma.
+//
+// Solo toca la columna Pago. La columna Estado es tuya: si ya moviste el pedido a
+// "En producción" o "Despachado", un aviso tardío no puede devolverlo atrás.
+//
+// Devuelve `actualizado: true` SOLO si la celda de verdad cambió. De eso depende que
+// no se manden correos repetidos: Mercado Pago envía el mismo aviso varias veces.
+function actualizarPago(datos) {
+  var candado = LockService.getScriptLock();
+  // Dos avisos simultáneos podrían leer la celda antes de que el otro la escriba, y
+  // ambos creerían que la cambiaron: dos correos por un solo pago.
+  if (!candado.tryLock(10000)) {
+    return responder({ ok: false, error: 'la hoja estaba ocupada' });
+  }
+
+  try {
+    var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+    var ultima = hoja.getLastRow();
+    if (ultima < 2) {
+      return responder({ ok: true, actualizado: false, motivo: 'la hoja está vacía' });
+    }
+
+    var pedidos = hoja.getRange(2, COL_PEDIDO, ultima - 1, 1).getValues();
+    var fila = -1;
+    // De abajo hacia arriba: si un número se repitiera, gana el pedido más reciente.
+    for (var i = pedidos.length - 1; i >= 0; i--) {
+      if (String(pedidos[i][0]).trim() === String(datos.numeroPedido).trim()) {
+        fila = i + 2;
+        break;
+      }
+    }
+
+    if (fila === -1) {
+      return responder({ ok: true, actualizado: false, motivo: 'no encontré ese número de pedido' });
+    }
+
+    var celda = hoja.getRange(fila, COL_PAGO);
+    var actual = String(celda.getValue()).trim();
+    var nuevo = String(datos.pago || '').trim();
+
+    if (actual === nuevo) {
+      return responder({ ok: true, actualizado: false, motivo: 'ya estaba en ese estado' });
+    }
+
+    celda.setValue(nuevo);
+    SpreadsheetApp.flush();
+    return responder({ ok: true, actualizado: true, fila: fila });
+  } catch (err) {
+    return responder({ ok: false, error: String(err) });
+  } finally {
+    candado.releaseLock();
   }
 }
 

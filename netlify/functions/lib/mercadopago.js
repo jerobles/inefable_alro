@@ -20,6 +20,10 @@ export async function crearPreferencia({ accessToken, items, payer, externalRefe
       external_reference: externalReference,
       back_urls: backUrls,
       auto_return: 'approved',
+      // A dónde avisa Mercado Pago cuando el pago cambia de estado. Se manda aquí,
+      // por preferencia, además de dejarlo configurado en el panel: así el aviso
+      // queda amarrado al pedido y no depende solo de la configuración manual.
+      notification_url: `${siteUrl()}/.netlify/functions/pago-webhook`,
     }),
   });
 
@@ -41,6 +45,35 @@ export async function crearPreferencia({ accessToken, items, payer, externalRefe
   return {
     checkoutUrl: preferencia.init_point,
     preferenceId: preferencia.id,
+  };
+}
+
+// Consulta un pago por su id. El aviso del webhook SOLO trae el id, nunca el estado:
+// hay que volver a preguntarle a Mercado Pago, y esa respuesta es la única verdad.
+// Confiar en el cuerpo del aviso permitiría que cualquiera que descubra la URL se
+// invente un "pago aprobado".
+export async function consultarPago({ accessToken, pagoId }) {
+  const response = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(pagoId)}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    const err = new Error(`Mercado Pago error ${response.status}: ${errText.slice(0, 300)}`);
+    err.statusCode = response.status;
+    throw err;
+  }
+
+  const pago = await response.json();
+  return {
+    id: pago.id,
+    estado: pago.status, // approved | rejected | pending | in_process | cancelled | refunded…
+    detalle: pago.status_detail,
+    // Nuestro número de pedido (IA-AAMMDD-XXXX): el amarre entre el pago y todo lo demás.
+    numeroPedido: pago.external_reference || '',
+    monto: pago.transaction_amount,
+    correo: pago.payer?.email || '',
+    metodo: pago.payment_method_id || '',
   };
 }
 
