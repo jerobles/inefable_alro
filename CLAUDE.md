@@ -245,6 +245,7 @@ El usuario pidió limitar los deploys para no gastar minutos de build de Netlify
 
 - **`[skip ci]` en los commits que NO cambian el sitio.** Netlify se salta el build si el mensaje del commit contiene `[skip ci]`. Todo commit que solo toque documentación (`CLAUDE.md`, `docs/`, comentarios, la hoja de ruta) debe llevarlo: no hay nada que reconstruir y gastar un despliegue en eso es tirar minutos.
   - **Ojo con el commit mixto:** si el commit toca código *y* documentación, NO lleva `[skip ci]` — el código sí necesita desplegarse. Ante la duda, no ponerlo: perder un despliegue es peor que gastar minutos de más.
+  - ⚠️ **La trampa: manda el ÚLTIMO commit del push, no cada uno.** Netlify mira el mensaje del commit que queda arriba. Si se suben cinco commits y el último es de documentación con `[skip ci]`, **no se despliega ninguno de los otros cuatro** — el código se queda sin publicar y nada lo avisa. Cuando un push lleve código, el último commit no puede llevar la marca; lo más simple es dejar los de documentación en medio, o no marcarlos en ese push.
   - Va en el cuerpo o al final del título, en cualquier parte del mensaje.
 - **Publicar en tandas.** Cada clic en "publicar" de `/admin` dispara un despliegue completo. Tres posts publicados juntos gastan lo mismo que uno; publicados en tres días, el triple. Vale la pena sugerírselo al usuario cuando tenga varias cosas que cargar.
 
