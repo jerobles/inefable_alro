@@ -5,10 +5,10 @@ con `lib/firma-mp.js` (validación de firma) y `actualizarPagoEnHoja()` en `lib/
 La función responde en producción (`POST` sin firma válida → `401`; `GET` → `405`; un aviso
 que no es de pago → `200` ignorado).
 
-**Falta una sola cosa:** la variable `MP_WEBHOOK_SECRET` en Netlify (paso 1 de abajo). Los
-pasos 2 y 3 ya los hizo el usuario. Hasta que esa clave esté, **todos los avisos se rechazan
-con 401 a propósito** — sin poder verificar la firma no hay forma de distinguir un aviso real
-de uno inventado, así que falla cerrado. Ver esos 401 en el log es lo esperado, no un fallo.
+**Los tres pasos de configuración están hechos** (2026-09-11), incluida la clave
+`MP_WEBHOOK_SECRET`. Falta la prueba con un pago real, que solo llega con la próxima venta:
+el usuario no administra la cuenta de Mercado Pago, así que no puede usar el simulador del
+panel, y decidió no reversar su compra real para provocar un aviso.
 
 **Lo que disparó hacerlo:** el pedido `IA-260909-AKNQ` llegó por correo y quedó en la
 hoja, pero dos días después no aparecía ningún pago en Mercado Pago. Sin webhook no había
@@ -32,6 +32,34 @@ logs de Netlify solo duran 24 horas, así que ya no se podía averiguar.
   reintente. Todo lo demás responde 200.
 - El `notification_url` se manda **en cada preferencia**, además de dejarlo configurado en
   el panel: así el aviso queda amarrado al pedido.
+
+### Los avisos vienen por DOS canales, y uno NO va firmado (2026-09-11)
+
+Descubierto en producción, con la clave ya configurada: los avisos llegaban con
+`Firma rechazada: el aviso llegó sin header x-signature`. No era un problema de
+configuración.
+
+| Canal | Cómo llega | ¿Firmado? |
+|---|---|---|
+| **Webhooks** (el moderno, el del panel) | `?type=payment&data.id=…`, cuerpo JSON | Sí, header `x-signature` |
+| **IPN** (el viejo, el que dispara el `notification_url` de la preferencia) | `?topic=payment&id=…`, a veces sin cuerpo | **No**, y no hay forma de pedírselo |
+
+Rechazar el segundo canal significaba **perder pagos reales**. La regla quedó así:
+
+- **Firma presente → tiene que ser válida**, o se corta con 401. Una firma presente pero
+  incorrecta sí es un intento de falsificación.
+- **Firma ausente → se procesa igual**, dejando un aviso en el log.
+
+**Por qué aceptar un aviso sin firmar no abre un hueco.** El aviso solo trae un **id**,
+nunca un estado. El estado se lee después contra la API de Mercado Pago con nuestro propio
+Access Token, y esa respuesta es la única que se cree. Alguien que descubriera la URL solo
+podría lograr que consultemos un id: si no es un pago de esta cuenta, la API responde 404 y
+no pasa nada; y si lo es, actuamos sobre su estado real, que es justo lo correcto.
+Inventarse un "pago aprobado" es imposible. **La seguridad de esta integración la sostiene
+la reconsulta por API, no la firma** — la firma es una capa extra, no el cimiento.
+
+Como los dos canales pueden avisar del mismo pago, llegan invocaciones duplicadas: las
+absorbe la idempotencia anclada en la hoja, que ya estaba hecha para eso.
 
 ---
 
@@ -108,12 +136,14 @@ Una función nueva, `netlify/functions/pago-webhook.js`:
 
 ## Lo que tiene que hacer el usuario
 
-1. ⏳ **PENDIENTE — Mercado Pago → Tus integraciones → tu aplicación → Webhooks.** Registrar
-   la URL `https://inefablealro.com/.netlify/functions/pago-webhook`, marcar el evento
-   **Pagos**, y copiar la **clave secreta** que genera. Ponerla en Netlify como
-   `MP_WEBHOOK_SECRET` y redesplegar. Sin esa variable el webhook rechaza todo con 401 — a
-   propósito: sin firma no hay forma de distinguir un aviso real de uno inventado.
-   - El log lo dice tal cual: `Firma rechazada: MP_WEBHOOK_SECRET no está configurado`.
+1. ✅ **Hecho (2026-09-11) — Mercado Pago → Tus integraciones → tu aplicación → Webhooks.**
+   URL `https://inefablealro.com/.netlify/functions/pago-webhook` registrada, evento
+   **Pagos**, y la clave secreta puesta en Netlify como `MP_WEBHOOK_SECRET` + redespliegue.
+   - **Cómo saber si la clave llegó a la función, mirando el log:** el chequeo de la clave
+     es el **primero** de todos, así que si el log dice `MP_WEBHOOK_SECRET no está
+     configurado`, no llegó; **cualquier otro motivo de rechazo prueba que sí está**.
+     Desde afuera no se puede distinguir: un aviso con firma falsa devuelve 401 igual en
+     los dos casos, a propósito, para no darle pistas a quien esté tanteando la URL.
 2. ✅ **Hecho — Brevo → Contactos → Configuración → Atributos:** `ULTIMO_PAGO`, tipo **Fecha**.
 3. ✅ **Hecho (2026-09-11) — Apps Script de la hoja reimplementado** con la versión nueva
    (la de este repo, en `docs/hoja-de-pedidos.md`), que ya trae la acción `actualizarPago`.
@@ -137,6 +167,11 @@ la hoja simuladas. Nueve casos, todos pasando:
 | Aviso de otro tipo (merchant_order) | se ignora, 200 |
 | La API de Mercado Pago falla | **500**, para que Mercado Pago reintente |
 | La hoja falla | 200, pero NO manda el correo de pago confirmado |
+| **Aviso del canal IPN, sin firma** | se procesa igual: marca la hoja y manda el correo |
+| **IPN repetido** | 200, un solo correo (la idempotencia cubre los dos canales) |
+| **IPN de merchant_order** | se ignora, 200 |
+| **Firma presente pero falsa** | sigue siendo 401 |
+| **Sin firma, y el pago no existe en la cuenta** | 500 y ningún efecto — el caso del atacante que inventa un id |
 
 **Falta la prueba real:** un pago de verdad, verificando que la hoja pase sola de
 "En línea (confirmar en Mercado Pago)" a "Pagado ✓" y que llegue el correo de

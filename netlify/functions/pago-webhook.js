@@ -7,8 +7,10 @@
 // Tres reglas que Mercado Pago marca como obligatorias, y que son justo donde se
 // equivocan las integraciones:
 //
-//   1. NUNCA confiar en el cuerpo del aviso. Se valida la firma y, además, se vuelve a
-//      consultar el pago por API — esa respuesta es la única verdad.
+//   1. NUNCA confiar en el cuerpo del aviso. Se valida la firma cuando viene y, sobre
+//      todo, se vuelve a consultar el pago por API — esa respuesta es la única verdad.
+//      Lo segundo es lo que de verdad sostiene la seguridad; ver el comentario largo
+//      sobre los dos canales de aviso, más abajo.
 //   2. Responder rápido con 2xx. Si tardamos o fallamos, Mercado Pago reintenta y
 //      llegan avisos duplicados.
 //   3. Ser idempotente. El mismo pago llega varias veces; procesarlo dos veces no puede
@@ -77,17 +79,40 @@ export const handler = async (event) => {
     return { statusCode: 200, body: 'ignored' };
   }
 
-  const firma = validarFirmaMercadoPago({
-    xSignature: headers['x-signature'],
-    xRequestId: headers['x-request-id'],
-    dataId,
-    secreto,
-  });
+  // Mercado Pago avisa por DOS canales y no los trata igual (visto en producción el
+  // 2026-09-11, con la clave ya configurada):
+  //   - Webhooks (el moderno): llega firmado, con el header x-signature.
+  //   - IPN (el viejo, el que dispara el notification_url de la preferencia): llega SIN
+  //     firmar. No hay forma de pedirle que lo firme.
+  // Rechazar los del segundo canal significaba perder pagos reales, así que la regla es:
+  //   firma presente  → tiene que ser válida, o se corta (eso sí sería una falsificación)
+  //   firma ausente   → se procesa igual
+  //
+  // Aceptar un aviso sin firmar NO abre un hueco, y vale la pena entender por qué: el
+  // aviso solo trae un id, nunca un estado. El estado se lee después con nuestro propio
+  // Access Token contra la API de Mercado Pago, y esa respuesta es la única que se cree.
+  // Alguien que descubriera la URL solo podría lograr que consultemos un id: si no es un
+  // pago de esta cuenta, la API responde 404 y no pasa nada; y si lo es, actuamos sobre
+  // su estado real, que es justo lo correcto. Inventarse un "pago aprobado" es imposible.
+  const traeFirma = Boolean(headers['x-signature']);
 
-  if (!firma.valida) {
-    // 401 a propósito: si alguien está probando la URL, que no reciba un OK.
-    console.error(`[${NOMBRE}] Firma rechazada: ${firma.motivo}`);
-    return { statusCode: 401, body: 'Invalid signature' };
+  console.log(
+    `[${NOMBRE}] Aviso recibido — tipo "${tipo}", id ${dataId || '(sin id)'}, ${traeFirma ? 'firmado' : 'SIN firmar (canal IPN)'}`
+  );
+
+  if (traeFirma) {
+    const firma = validarFirmaMercadoPago({
+      xSignature: headers['x-signature'],
+      xRequestId: headers['x-request-id'],
+      dataId,
+      secreto,
+    });
+
+    if (!firma.valida) {
+      // 401 a propósito: si alguien está probando la URL, que no reciba un OK.
+      console.error(`[${NOMBRE}] Firma rechazada: ${firma.motivo}`);
+      return { statusCode: 401, body: 'Invalid signature' };
+    }
   }
 
   let pago;
