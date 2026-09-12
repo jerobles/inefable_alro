@@ -101,7 +101,10 @@ export default defineConfig({
       // indexe y nadie caiga ahí desde una búsqueda (ambas llevan su propio noindex).
       filter: (page) => !page.includes('/pago-confirmado') && !page.includes('/carrito'),
       serialize(item) {
-        const ruta = new URL(item.url).pathname;
+        // decodeURIComponent: un título con tilde deja un nombre de archivo con
+        // tilde, y en la URL llega escapado (qué → qu%C3%A9). Sin decodificar, la
+        // ruta al .md no existe y la página se quedaba sin lastmod en silencio.
+        const ruta = decodeURIComponent(new URL(item.url).pathname);
         const fecha = masReciente(fuenteDeLaPagina(ruta));
         if (fecha) item.lastmod = fecha.toISOString();
         return item;
