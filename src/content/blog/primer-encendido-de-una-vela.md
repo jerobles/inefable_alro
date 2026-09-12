@@ -39,4 +39,4 @@ Sí, hasta cierto punto. Dejarla encendida por más tiempo del habitual una sola
 
 Al final, este primer encendido es también una excusa para bajar el ritmo: encender la vela con calma, quedarte cerca la primera hora, dejar que el aroma se despliegue completo por primera vez. Es, quizás, el momento más honesto de conexión con la pieza que elegiste.
 
-Si todavía no tienes tu primera vela Inefable ALRO — o quieres aprender a hacer las tuyas propias, entendiendo de primera mano por qué pasa todo esto — te esperamos en nuestro [Taller de Velas](/curso). Ahí no solo te llevas una vela hecha por ti: te llevas también todo este conocimiento.
+Si todavía no tienes [tu primera vela Inefable ALRO](/tienda/) — o quieres aprender a hacer las tuyas propias, entendiendo de primera mano por qué pasa todo esto — te esperamos en nuestro [Taller de Velas](/curso). Ahí no solo te llevas una vela hecha por ti: te llevas también todo este conocimiento.

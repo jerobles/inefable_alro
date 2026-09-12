@@ -109,6 +109,15 @@ Proyecto compila sin errores (`npm run build`) y **ya está desplegado y en vivo
 
 ## Pendiente / próximos pasos
 
+0.1. **PRÓXIMO PASO (pedido por el usuario el 2026-09-11): repensar el flujo de entrega.** Hoy la zona la declara el comprador en un `<select>` y el sitio le cree. Eso no es blindado y cuesta plata: quien elige "Norte de Bogotá" paga **envío gratis**, así que basta con marcarlo para ahorrarse el domicilio, y el error solo se descubre cuando hay que llevar el pedido al otro extremo de la ciudad. No es un hueco de seguridad, es un hueco **operativo y de costo**.
+   - **Ojo con la asimetría:** el precio de los productos sí está blindado (se recalcula contra el catálogo del servidor), pero el **envío** depende de un dato que pone el comprador y que nadie verifica. Es la única pieza del cobro que todavía se acepta a ciegas.
+   - **Lo que el usuario quiere resolver, en sus palabras:**
+     1. **Definir y limitar qué es "el norte"** — hoy es un concepto difuso que cada persona interpreta distinto, y ni siquiera está escrito en ninguna parte.
+     2. **Envíos a otra ciudad:** averiguar si existe algo mejor que el flujo manual actual (cotizar por WhatsApp caso por caso) — alguna forma de calcular la tarifa — **o dejarlos directamente a contraentrega**, que puede ser la salida más simple y la que menos código pide.
+     3. **Pedir más datos de dirección en el formulario:** barrio, ciudad, y si es **casa o apartamento** (con torre/apto cuando aplique). El usuario cree que con eso los pedidos se despachan mucho mejor; hoy la dirección es un campo de texto libre y llega como venga.
+   - **A investigar antes de proponer nada:** si la zona se deriva del **barrio o la localidad** (una lista cerrada en vez de texto libre), el cobro deja de depender de la buena fe y de paso se resuelven el punto 1 y el 3 con un solo cambio. Confirmar con el usuario **qué localidades/barrios cuentan como norte** — ese dato no está en ninguna parte y sin él no se puede implementar.
+   - Tocaría `/carrito` (formulario y cálculo), `lib/pedido.js`, `pago-producto.js`, la columna Dirección/Zona de la hoja y los dos correos. **No empezar a codear sin cerrar antes las tres decisiones con el usuario.**
+
 0.3. **Pago en línea con Mercado Pago (2026-08-22, código completo con datos de prueba — falta el Access Token real para probar de punta a punta).** Ver [[pasarela-pago-mercado-pago]] en memoria: el proveedor real es Mercado Pago (no Wompi), misma cuenta que ya usa el cliente para el curso.
    - **Cómo funciona:** el registro en Brevo (CRM) sigue exactamente el mismo camino de siempre (Netlify Forms → `brevo-sync.js` / `producto-sync.js`, sin tocar esa lógica). Aparte, si el pedido tiene un precio fijo conocido, el formulario llama directo (fetch, no vía webhook) a una función nueva que arma una "preferencia" en Mercado Pago y redirige al comprador a pagar. Al volver, cae en `/pago-confirmado`, que lo invita a coordinar por WhatsApp.
    - **Taller (`/curso`):** cualquier taller real (no la opción "aún no estoy segur@") redirige a pago — precio tomado de `talleres.json` (generado del content collection), no del navegador.
@@ -224,6 +233,13 @@ Proyecto compila sin errores (`npm run build`) y **ya está desplegado y en vivo
 ## Flujo de deploy (importante, desde 2026-08-21)
 
 El usuario pidió limitar los deploys para no gastar minutos de build de Netlify. **No hacer `git push` después de cada cambio** — hacer commits locales normalmente, probar en el servidor local, y solo subir (`git push`) cuando el usuario lo pida explícitamente ("publica esto", "sube los cambios"). Excepción: publicar posts del blog desde `/admin` sí sube directo a producción vía Git Gateway, eso es independiente y está bien que pase.
+
+**Los minutos de build son un recurso escaso de verdad** (el usuario los vio acercarse al límite el 2026-09-11). Si se acaban, el sitio **no se cae** — sigue en vivo y vendiendo, con formularios y funciones intactos; lo único que se detiene son los despliegues nuevos hasta el siguiente ciclo. El efecto práctico es que un post o un taller publicado desde `/admin` queda guardado pero no aparece hasta que se reponga la cuota.
+
+- **`[skip ci]` en los commits que NO cambian el sitio.** Netlify se salta el build si el mensaje del commit contiene `[skip ci]`. Todo commit que solo toque documentación (`CLAUDE.md`, `docs/`, comentarios, la hoja de ruta) debe llevarlo: no hay nada que reconstruir y gastar un despliegue en eso es tirar minutos.
+  - **Ojo con el commit mixto:** si el commit toca código *y* documentación, NO lleva `[skip ci]` — el código sí necesita desplegarse. Ante la duda, no ponerlo: perder un despliegue es peor que gastar minutos de más.
+  - Va en el cuerpo o al final del título, en cualquier parte del mensaje.
+- **Publicar en tandas.** Cada clic en "publicar" de `/admin` dispara un despliegue completo. Tres posts publicados juntos gastan lo mismo que uno; publicados en tres días, el triple. Vale la pena sugerírselo al usuario cuando tenga varias cosas que cargar.
 
 ## Comandos útiles
 
