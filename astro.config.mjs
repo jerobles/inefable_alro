@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import { execSync } from 'node:child_process';
 import { readdirSync, existsSync } from 'node:fs';
+import rehypeBarraFinal from './scripts/rehype-barra-final.mjs';
 
 // ---------------------------------------------------------------------------
 // <lastmod> del sitemap: cuándo cambió de verdad cada página.
@@ -88,6 +89,10 @@ function fuenteDeLaPagina(ruta) {
 
 export default defineConfig({
   site: 'https://inefablealro.com',
+  markdown: {
+    // Corrige la barra final de los enlaces internos escritos desde /admin.
+    rehypePlugins: [rehypeBarraFinal],
+  },
   integrations: [
     sitemap({
       // Páginas que solo tienen sentido dentro de una compra en curso: /pago-confirmado
