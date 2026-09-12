@@ -5,6 +5,11 @@ con `lib/firma-mp.js` (validación de firma) y `actualizarPagoEnHoja()` en `lib/
 La función responde en producción (`POST` sin firma válida → `401`; `GET` → `405`; un aviso
 que no es de pago → `200` ignorado).
 
+**Verificado en producción (2026-09-11)**, tras el cambio de los dos canales: aviso sin
+firma → `500 No se pudo consultar el pago` (o sea, lo aceptó y fue a consultar el id
+inventado, que Mercado Pago rechazó); aviso **con** firma falsa → `401`; IPN de
+`merchant_order` → `200 ignored`; `GET` → `405`.
+
 **Los tres pasos de configuración están hechos** (2026-09-11), incluida la clave
 `MP_WEBHOOK_SECRET`. Falta la prueba con un pago real, que solo llega con la próxima venta:
 el usuario no administra la cuenta de Mercado Pago, así que no puede usar el simulador del
