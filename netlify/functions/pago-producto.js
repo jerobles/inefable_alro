@@ -1,5 +1,6 @@
 import { crearPreferencia, siteUrl } from './lib/mercadopago.js';
 import { comoLista, resolverPedido, resumenTexto } from './lib/pedido.js';
+import { envioDeEntrega } from './lib/zonas.js';
 import productosRaw from './data/productos.cjs';
 
 const NOMBRE = 'pago-producto';
@@ -8,10 +9,33 @@ const productos = comoLista(productosRaw, NOMBRE);
 // Por ahora el pago en línea solo aplica a entregas en Bogotá (domicilio con tarifa
 // fija incluida en el cobro). Pedidos a otras ciudades siguen el flujo de siempre:
 // se coordinan por WhatsApp y se cotiza el envío con la transportadora caso por caso,
-// sin pasar por aquí. Tarifas confirmadas por el usuario (2026-08-22): norte de
-// Bogotá gratis, resto de la ciudad $15.000.
+// sin pasar por aquí. Tarifas confirmadas por el usuario: entrega propia sin costo en
+// Usaquén, resto de Bogotá $15.000.
 const ENVIO_BOGOTA_NORTE_COP = Number(process.env.ENVIO_BOGOTA_NORTE_COP) || 0;
 const ENVIO_BOGOTA_RESTO_COP = Number(process.env.ENVIO_BOGOTA_RESTO_COP) || 15000;
+
+/**
+ * Cuánto se cobra de domicilio. **El navegador manda la localidad, nunca el precio**, y
+ * acá se recalcula desde cero con la lista compartida de lib/zonas.js.
+ *
+ * Se sigue aceptando el formato viejo (`zonaBogota: 'norte' | 'resto'`) por las páginas
+ * cacheadas en el navegador de alguien, que pueden seguir mandándolo un buen rato
+ * después del despliegue. Mismo criterio que con el payload de producto suelto.
+ */
+function calcularEnvio(data) {
+  if (data.localidad || data.ciudad) {
+    return envioDeEntrega({
+      ciudad: data.ciudad,
+      localidad: data.localidad,
+      tarifaBogota: ENVIO_BOGOTA_RESTO_COP,
+      tarifaGratis: ENVIO_BOGOTA_NORTE_COP,
+    });
+  }
+  if (data.zonaBogota) {
+    return data.zonaBogota === 'norte' ? ENVIO_BOGOTA_NORTE_COP : ENVIO_BOGOTA_RESTO_COP;
+  }
+  return null;
+}
 
 // Igual que pago-taller.js: esta función solo arma el link de pago. El registro en
 // Brevo (con la dirección incluida en el aviso interno) lo sigue haciendo
@@ -34,7 +58,7 @@ export const handler = async (event) => {
     return { statusCode: 400, body: 'Invalid payload' };
   }
 
-  const { nombre, correo, zonaBogota, numeroPedido } = data;
+  const { nombre, correo, numeroPedido } = data;
   if (!correo) {
     return { statusCode: 400, body: 'Missing email' };
   }
@@ -68,7 +92,15 @@ export const handler = async (event) => {
     return { statusCode: 400, body: 'Pedido no disponible para pago en línea' };
   }
 
-  const envio = zonaBogota === 'norte' ? ENVIO_BOGOTA_NORTE_COP : ENVIO_BOGOTA_RESTO_COP;
+  const envio = calcularEnvio(data);
+
+  // Sin localidad válida no hay tarifa, y cobrar "por si acaso" sería inventar un
+  // precio. Pasa si el navegador manda una localidad que no existe o ninguna: ese
+  // pedido se cierra por WhatsApp, igual que los de otra ciudad.
+  if (envio === null) {
+    console.error('[pago-producto] Entrega sin tarifa calculable (ciudad=%s, localidad=%s)', data.ciudad, data.localidad);
+    return { statusCode: 400, body: 'Pedido no disponible para pago en línea' };
+  }
 
   const items = lineas.map((l) => ({
     title: `${l.nombre} — ${l.presentacion}`,

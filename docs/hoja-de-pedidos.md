@@ -40,6 +40,11 @@ const TOKEN = 'PEGA-AQUI-TU-CLAVE';
 const ENCABEZADOS = [
   'Fecha', 'Pedido', 'Estado', 'Cliente', 'WhatsApp', 'Correo', 'Productos',
   'Subtotal', 'Envío', 'Total', 'Zona', 'Dirección', 'Notas', 'Pago',
+  // ⚠️ Lo nuevo va DESPUÉS de "Pago". Esa columna es la 14 y el sitio escribe ahí
+  // cuando Mercado Pago confirma: si se mete algo antes, se corre y deja de
+  // funcionar sin avisar. Agrega siempre al final.
+  'Ciudad', 'Localidad', 'Barrio', 'Tipo de lugar', 'Torre/Apto',
+  'Indicaciones', 'Recibe',
 ];
 
 // Columna donde está cada cosa (1 = A). Solo se usan al actualizar un pago.
@@ -65,6 +70,16 @@ function doPost(e) {
       hoja.appendRow(ENCABEZADOS);
       hoja.getRange(1, 1, 1, ENCABEZADOS.length).setFontWeight('bold');
       hoja.setFrozenRows(1);
+    } else {
+      // Si una versión anterior dejó menos encabezados, se completan los que falten.
+      // Sin esto, al agregar columnas nuevas los datos entrarían bajo celdas vacías.
+      var anchoActual = hoja.getLastColumn();
+      if (anchoActual < ENCABEZADOS.length) {
+        var faltantes = ENCABEZADOS.slice(anchoActual);
+        hoja.getRange(1, anchoActual + 1, 1, faltantes.length)
+          .setValues([faltantes])
+          .setFontWeight('bold');
+      }
     }
 
     hoja.appendRow([
@@ -82,6 +97,13 @@ function doPost(e) {
       f.direccion || '',
       f.notas || '',
       f.pago || '',
+      f.ciudad || '',
+      f.localidad || '',
+      f.barrio || '',
+      f.tipoLugar || '',
+      f.unidad || '',
+      f.indicaciones || '',
+      f.recibe || '',
     ]);
 
     return responder({ ok: true });
@@ -216,7 +238,17 @@ solo debe consultar y marcar estados, dale permiso de **Editor** sobre la hoja p
   (*En producción*, *Despachado*, *Entregado*…). El sitio nunca la vuelve a tocar:
   cada pedido es una fila nueva.
 - **Puedes agregar tus propias columnas al final** (una de "Observaciones", por
-  ejemplo). El script escribe siempre las 14 primeras y no pisa lo que venga después.
+  ejemplo). El script escribe siempre las 21 primeras y no pisa lo que venga después.
+- **Las columnas 15 a 21** (Ciudad, Localidad, Barrio, Tipo de lugar, Torre/Apto,
+  Indicaciones, Recibe) traen la dirección partida en pedazos, para poder **filtrar y
+  contar**: cuántos pedidos van a Suba, en qué barrios se concentran tus clientes, si
+  vale la pena ampliar la entrega propia. La columna *Dirección* sigue llevándolo todo
+  junto, que es lo que se lee para despachar.
+  - **Van después de "Pago" a propósito.** El sitio escribe la confirmación del pago en
+    la columna 14; si metes una columna nueva antes de esa, el pago empieza a escribirse
+    en la casilla equivocada **sin que nada lo avise**. Agrega siempre al final.
+  - Si tu hoja ya tenía datos, el script **completa solo los encabezados nuevos** la
+    primera vez que entre un pedido.
 - **La columna "Total" viene vacía** cuando el pedido no tiene precio cerrado
   (otra ciudad, o productos por cotización): en esos casos el valor final aún no
   existe. La columna "Pago" te dice cuál es cuál.

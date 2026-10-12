@@ -1,11 +1,14 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import WhatsAppBanner from '../components/WhatsAppBanner.astro';
+// Misma lista que usan las funciones del servidor para cobrar: ver lib/zonas.js.
+import { LOCALIDADES, TIPOS_DE_LUGAR } from '../../netlify/functions/lib/zonas.js';
 
 // Mismos valores por defecto que netlify/functions/pago-producto.js.
-const envioNorte = Number(import.meta.env.ENVIO_BOGOTA_NORTE_COP) || 0;
-const envioResto = Number(import.meta.env.ENVIO_BOGOTA_RESTO_COP) || 15000;
-const formatPrecio = (n: number) => n.toLocaleString('es-CO');
+const envioGratis = Number(import.meta.env.ENVIO_BOGOTA_NORTE_COP) || 0;
+const envioBogota = Number(import.meta.env.ENVIO_BOGOTA_RESTO_COP) || 15000;
+// Qué localidad es gratis NO viaja al navegador como etiqueta: el desplegable muestra
+// solo nombres. El total sí se recalcula al elegir, que es lo que el comprador debe ver.
 ---
 
 <Layout
@@ -40,11 +43,23 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
 
           <label class="pedido-pagina__zona">
             ¿Dónde lo entregamos?
-            <select name="entrega" data-pedido-zona>
-              <option value="bogota-norte">Norte de Bogotá — envío gratis</option>
-              <option value="bogota-resto">Resto de Bogotá — ${formatPrecio(envioResto)}</option>
-              <option value="otra">Otra ciudad — se cotiza el envío</option>
+            <select name="ciudad" data-pedido-ciudad>
+              <option value="bogota">Bogotá</option>
+              <option value="otra">Otra ciudad</option>
             </select>
+          </label>
+
+          <label class="pedido-pagina__zona" data-campo-localidad>
+            Localidad
+            <select name="localidad" data-pedido-localidad required>
+              <option value="">Elige tu localidad…</option>
+              {LOCALIDADES.map((l) => <option value={l.valor}>{l.nombre}</option>)}
+            </select>
+          </label>
+
+          <label class="pedido-pagina__zona" data-campo-ciudad-otra hidden>
+            ¿En qué ciudad?
+            <input type="text" name="ciudad-otra" placeholder="Medellín, Cali, Bucaramanga…" />
           </label>
 
           <dl class="pedido-pagina__cuentas">
@@ -79,9 +94,31 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
                 title="Escribe un correo válido, por ejemplo nombre@dominio.com"
               />
             </label>
+            <label data-campo-barrio>
+              Barrio
+              <input type="text" name="barrio" placeholder="Cedritos, Chicó, Santa Bárbara…" />
+            </label>
             <label data-campo-direccion>
-              Dirección de entrega
-              <input type="text" name="direccion" autocomplete="street-address" placeholder="Calle 123 #45-67, apto 890" />
+              Dirección
+              <input type="text" name="direccion" autocomplete="street-address" placeholder="Calle 123 #45-67" />
+            </label>
+            <label data-campo-tipo>
+              ¿Es casa o apartamento?
+              <select name="tipo-lugar" data-pedido-tipo>
+                {TIPOS_DE_LUGAR.map((t) => <option value={t.valor}>{t.nombre}</option>)}
+              </select>
+            </label>
+            <label data-campo-unidad hidden>
+              Torre, interior y apartamento
+              <input type="text" name="unidad" placeholder="Torre 3, apto 502" />
+            </label>
+            <label data-campo-indicaciones>
+              Indicaciones para la entrega <span class="opcional">(opcional)</span>
+              <input type="text" name="indicaciones" placeholder="Recibe portería, el timbre no suena…" />
+            </label>
+            <label>
+              ¿Lo recibe otra persona? <span class="opcional">(opcional)</span>
+              <input type="text" name="recibe" placeholder="Nombre y celular de quien recibe" />
             </label>
             <label>
               ¿Algo que debamos saber? <span class="opcional">(opcional)</span>
@@ -121,10 +158,17 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
   </section>
 </Layout>
 
-<script is:inline define:vars={{ envioNorte, envioResto }}>
+<script is:inline define:vars={{ envioGratis, envioBogota, localidadesGratis: ['usaquen'] }}>
   // Se usa is:inline + define:vars para que los valores de envío (que vienen de
   // variables de entorno en el build) lleguen al navegador sin duplicar el número.
-  window.__enviosInefable = { norte: envioNorte, resto: envioResto };
+  //
+  // Sí, el navegador sabe cuál localidad es gratis — no hay forma de evitarlo si el
+  // total tiene que actualizarse al instante. La diferencia con antes es que ya no se
+  // anuncia en la etiqueta de la opción: hay que ir a mirar el código para enterarse,
+  // en vez de leerlo mientras se elige. Y el cobro real NO sale de acá: lo recalcula
+  // pago-producto.js en el servidor desde la localidad, así que cambiar estos números
+  // en el navegador no cambia un peso de lo que se cobra.
+  window.__enviosInefable = { gratis: envioGratis, bogota: envioBogota, localidadesGratis };
 </script>
 
 <script>
@@ -155,32 +199,43 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
     const carrito = (window as any).carritoInefable;
     if (!carrito) return;
 
-    const envios = (window as any).__enviosInefable || { norte: 0, resto: 15000 };
+    const envios = (window as any).__enviosInefable || { gratis: 0, bogota: 15000, localidadesGratis: [] };
     const form = document.getElementById('form-carrito') as HTMLFormElement | null;
     const lista = document.querySelector('[data-pedido-lista]') as HTMLElement | null;
     const vacio = document.querySelector('[data-pedido-vacio]') as HTMLElement | null;
-    const zonaSelect = document.querySelector('[data-pedido-zona]') as HTMLSelectElement | null;
+    const ciudadSelect = document.querySelector('[data-pedido-ciudad]') as HTMLSelectElement | null;
+    const localidadSelect = document.querySelector('[data-pedido-localidad]') as HTMLSelectElement | null;
+    const tipoSelect = document.querySelector('[data-pedido-tipo]') as HTMLSelectElement | null;
     const estado = document.querySelector('[data-pedido-estado]') as HTMLElement | null;
     const botonEnviar = document.querySelector('[data-pedido-enviar]') as HTMLButtonElement | null;
-    const campoDireccion = document.querySelector('[data-campo-direccion]') as HTMLElement | null;
+
+    const bloque = (nombre: string) => document.querySelector(`[data-campo-${nombre}]`) as HTMLElement | null;
+    const entrada = (nombre: string) =>
+      document.querySelector(`[data-campo-${nombre}] input, [data-campo-${nombre}] select`) as HTMLInputElement | null;
 
     const set = (sel: string, valor: string) => {
       const el = document.querySelector(sel) as HTMLInputElement | null;
       if (el) el.value = valor;
     };
 
-    function envioDeZona(zona: string) {
-      if (zona === 'bogota-norte') return envios.norte;
-      if (zona === 'bogota-resto') return envios.resto;
-      return null; // otra ciudad: se cotiza, no se puede sumar todavía
+    // Solo para pintar el total. El cobro de verdad lo calcula el servidor.
+    function envioDeEntrega(ciudad: string, localidad: string) {
+      if (ciudad !== 'bogota') return null; // otra ciudad: se cotiza
+      if (!localidad) return null; // todavía no eligió: no inventamos un precio
+      return envios.localidadesGratis.includes(localidad) ? envios.gratis : envios.bogota;
     }
 
     function estadoActual() {
       const items = carrito.leer();
-      const zona = zonaSelect?.value || 'bogota-norte';
-      const envio = envioDeZona(zona);
+      const ciudad = ciudadSelect?.value || 'bogota';
+      const localidad = localidadSelect?.value || '';
+      const envio = envioDeEntrega(ciudad, localidad);
       const cotiza = carrito.hayCotizacion(items);
-      return { items, zona, envio, cotiza, subtotal: carrito.subtotal(items), sePuedePagar: envio !== null && !cotiza };
+      return {
+        items, ciudad, localidad, envio, cotiza,
+        subtotal: carrito.subtotal(items),
+        sePuedePagar: envio !== null && !cotiza,
+      };
     }
 
     function pintar() {
@@ -209,29 +264,48 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
         `)
         .join('');
 
-      const { zona, envio, cotiza, subtotal, sePuedePagar } = estadoActual();
+      const { ciudad, localidad, envio, cotiza, subtotal, sePuedePagar } = estadoActual();
       const total = subtotal + (envio || 0);
+      const esBogota = ciudad === 'bogota';
 
       const elSub = document.querySelector('[data-pedido-subtotal]');
       const elEnvio = document.querySelector('[data-pedido-envio]');
       const elTotal = document.querySelector('[data-pedido-total]');
       if (elSub) elSub.textContent = carrito.formatPrecio(subtotal);
-      if (elEnvio) elEnvio.textContent = envio === null ? 'Se cotiza' : envio === 0 ? 'Gratis' : carrito.formatPrecio(envio);
-      if (elTotal) elTotal.textContent = envio === null ? carrito.formatPrecio(subtotal) + ' + envío' : carrito.formatPrecio(total);
-
-      // La dirección solo se pide (y se exige) si entregamos nosotros en Bogotá.
-      if (campoDireccion) {
-        const entradaDir = campoDireccion.querySelector('input') as HTMLInputElement | null;
-        campoDireccion.hidden = zona === 'otra';
-        if (entradaDir) entradaDir.required = zona !== 'otra';
+      if (elEnvio) {
+        // Antes de elegir localidad no se muestra ningún precio: ni "gratis" ni una
+        // cifra. Así el desplegable no se vuelve una lista de precios para tantear.
+        elEnvio.textContent = !esBogota ? 'Se cotiza' : envio === null ? '—' : envio === 0 ? 'Gratis' : carrito.formatPrecio(envio);
       }
+      if (elTotal) elTotal.textContent = envio === null ? carrito.formatPrecio(subtotal) + (esBogota ? ' + envío' : ' + envío') : carrito.formatPrecio(total);
+
+      // Los campos de dirección solo tienen sentido (y se exigen) si entregamos en
+      // Bogotá. Para otra ciudad se cotiza por WhatsApp y se piden después.
+      for (const nombre of ['localidad', 'barrio', 'direccion', 'tipo', 'indicaciones']) {
+        const el = bloque(nombre);
+        if (el) el.hidden = !esBogota;
+        const campo = entrada(nombre);
+        if (campo) campo.required = esBogota && nombre !== 'indicaciones';
+      }
+      const bloqueOtra = bloque('ciudad-otra');
+      if (bloqueOtra) bloqueOtra.hidden = esBogota;
+      const campoOtra = entrada('ciudad-otra');
+      if (campoOtra) campoOtra.required = !esBogota;
+
+      // Torre y apartamento solo si no es una casa.
+      const necesitaUnidad = esBogota && tipoSelect?.value !== 'casa';
+      const bloqueUnidad = bloque('unidad');
+      if (bloqueUnidad) bloqueUnidad.hidden = !necesitaUnidad;
+      const campoUnidad = entrada('unidad');
+      if (campoUnidad) campoUnidad.required = Boolean(necesitaUnidad);
 
       // Un solo aviso, con la razón concreta por la que este pedido no se cierra solo.
       const aviso = document.querySelector('[data-pedido-aviso]') as HTMLElement | null;
       if (aviso) {
         let texto = '';
         if (cotiza) texto = 'Tu pedido incluye productos que se cotizan, así que este no se paga en línea: te escribimos con el valor final antes de cobrar nada.';
-        else if (envio === null) texto = 'Para otras ciudades cotizamos el envío con la transportadora, así que este pedido lo cerramos por WhatsApp.';
+        else if (!esBogota) texto = 'Para otras ciudades cotizamos el envío con la transportadora, así que este pedido lo cerramos por WhatsApp.';
+        else if (envio === null) texto = 'Elige tu localidad para ver el total con el domicilio.';
         aviso.hidden = texto === '';
         aviso.textContent = texto;
       }
@@ -251,7 +325,7 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
       e.preventDefault();
       if (!form.reportValidity()) return;
 
-      const { zona, sePuedePagar } = estadoActual();
+      const { ciudad, localidad, sePuedePagar } = estadoActual();
       const numeroPedido = nuevoNumeroPedido();
       set('[data-campo-numero]', numeroPedido);
       pintar();
@@ -283,9 +357,13 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
           fetch('/.netlify/functions/pago-producto', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            // Se manda la LOCALIDAD, nunca un precio: el servidor recalcula el envío
+            // desde ella con la misma lista (lib/zonas.js). Editar el total en el
+            // navegador no cambia un peso de lo que cobra Mercado Pago.
             body: JSON.stringify({
               pedido: pedidoJson,
-              zonaBogota: zona === 'bogota-norte' ? 'norte' : 'resto',
+              ciudad,
+              localidad,
               nombre,
               correo,
               numeroPedido,
@@ -305,9 +383,13 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
     });
 
     function terminarSinPago(numeroPedido: string, fallóPago = false) {
-      const { items, zona } = estadoActual();
+      const { items, ciudad, localidad } = estadoActual();
       const detalle = items.map((it: any) => `• ${it.cantidad} x ${it.nombre} (${it.presentacion})`).join('\n');
-      const zonaTexto = zona === 'bogota-norte' ? 'Norte de Bogotá' : zona === 'bogota-resto' ? 'Resto de Bogotá' : 'Otra ciudad';
+      const nombreLocalidad = localidadSelect?.selectedOptions?.[0]?.textContent?.trim() || '';
+      const ciudadOtra = (entrada('ciudad-otra')?.value || '').trim();
+      const zonaTexto = ciudad === 'bogota'
+        ? `Bogotá${nombreLocalidad ? ' — ' + nombreLocalidad : ''}`
+        : ciudadOtra || 'Otra ciudad';
       const mensaje = `¡Hola! Acabo de hacer el pedido ${numeroPedido} 🕯️\n\n${detalle}\n\nEntrega: ${zonaTexto}`;
       const link = `https://wa.me/${NUMERO_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
 
@@ -334,7 +416,9 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
     // El panel lateral y esta página comparten el mismo carrito: cuando uno cambia
     // algo, el otro se entera por este evento en vez de leer el storage a ciegas.
     document.addEventListener('carrito:cambio', pintar);
-    zonaSelect?.addEventListener('change', pintar);
+    ciudadSelect?.addEventListener('change', pintar);
+    localidadSelect?.addEventListener('change', pintar);
+    tipoSelect?.addEventListener('change', pintar);
     pintar();
   }
 
@@ -419,6 +503,16 @@ const formatPrecio = (n: number) => n.toLocaleString('es-CO');
     font-family: var(--font-display);
     font-size: 1.25rem;
   }
+  /* El JS muestra y esconde campos según la zona poniéndoles el atributo `hidden`.
+     Pero las reglas de abajo les dan `display: flex`, y una regla del sitio le gana
+     al `display: none` que el navegador aplica por `[hidden]`: el campo se quedaba
+     visible igual. Hay que forzarlo.
+     Ojo: esto NO lo introdujo el rediseño de la entrega — el campo de dirección ya
+     venía sin ocultarse para los pedidos a otra ciudad, solo que nadie lo notó. */
+  .pedido-pagina [hidden] {
+    display: none !important;
+  }
+
   .pedido-pagina__zona {
     display: flex;
     flex-direction: column;

@@ -7,7 +7,8 @@ import {
   acumularValor,
   hoyISO,
 } from './lib/brevo.js';
-import { comoLista, resolverPedido, tablaPedidoHtml, resumenTexto, formatCOP, ENTREGA_LABEL } from './lib/pedido.js';
+import { comoLista, resolverPedido, tablaPedidoHtml, resumenTexto, formatCOP } from './lib/pedido.js';
+import { envioDeEntrega, textoEntrega, nombreTipoLugar, nombreLocalidad } from './lib/zonas.js';
 import { registrarEnHoja } from './lib/hoja.js';
 import productosRaw from './data/productos.cjs';
 
@@ -48,10 +49,31 @@ export const handler = async (event) => {
 
   const nombre = data.nombre || '';
   const whatsappLead = toE164Colombia(data.whatsapp);
-  const direccion = data.direccion || '';
   const notas = data.notas || '';
-  const entrega = data.entrega || 'otra';
   const numeroPedido = data['numero-pedido'] || data.numeroPedido || '';
+
+  // Datos de entrega. El formulario nuevo manda ciudad + localidad y los campos de
+  // dirección por separado; el viejo mandaba un solo campo `entrega` con la zona.
+  // Se leen los dos: una página cacheada puede seguir enviando el formato viejo.
+  const ciudad = data.ciudad || (data.entrega && data.entrega !== 'otra' ? 'bogota' : '');
+  const localidad = data.localidad || '';
+  const ciudadOtra = data['ciudad-otra'] || '';
+  const barrio = data.barrio || '';
+  const direccion = data.direccion || '';
+  const tipoLugar = data['tipo-lugar'] || '';
+  const unidad = data.unidad || '';
+  const indicaciones = data.indicaciones || '';
+  const recibe = data.recibe || '';
+
+  // La dirección completa, en una sola cadena legible para el correo y la hoja.
+  const direccionCompleta = [
+    direccion,
+    unidad,
+    barrio ? `Barrio ${barrio}` : '',
+    nombreTipoLugar(tipoLugar),
+    indicaciones ? `(${indicaciones})` : '',
+    recibe ? `Recibe: ${recibe}` : '',
+  ].filter(Boolean).join(' · ');
 
   // El pedido llega como una lista (el carrito). Se sigue aceptando el formato viejo
   // de un producto suelto porque el formulario que lo enviaba se retiró el 2026-09-06
@@ -75,12 +97,24 @@ export const handler = async (event) => {
     ? resumenTexto(lineas)
     : `${data.producto || 'un producto del catálogo'}${data.presentacion ? ` (${data.presentacion})` : ''}`;
 
-  const esBogota = entrega === 'bogota-norte' || entrega === 'bogota-resto';
-  const envio = !esBogota ? null : entrega === 'bogota-norte' ? ENVIO_BOGOTA_NORTE_COP : ENVIO_BOGOTA_RESTO_COP;
+  // Mismo cálculo que pago-producto.js, desde la misma lista: así el correo nunca
+  // puede mostrar un envío distinto del que se cobró.
+  let envio = envioDeEntrega({
+    ciudad,
+    localidad,
+    tarifaBogota: ENVIO_BOGOTA_RESTO_COP,
+    tarifaGratis: ENVIO_BOGOTA_NORTE_COP,
+  });
+  // Formato viejo (página cacheada): la zona venía en `entrega`, sin localidad.
+  if (envio === null && !localidad && data.entrega) {
+    if (data.entrega === 'bogota-norte') envio = ENVIO_BOGOTA_NORTE_COP;
+    else if (data.entrega === 'bogota-resto') envio = ENVIO_BOGOTA_RESTO_COP;
+  }
   const total = subtotal + (envio || 0);
+  const entregaTexto = textoEntrega({ ciudad, localidad, ciudadOtra });
   // Un pedido se cierra solo si es en Bogotá y todo tiene precio: ahí ya pagó en línea
   // y no hay nada que coordinar. Lo demás sí necesita que alguien escriba.
-  const necesitaCoordinar = !esBogota || hayCotizacion;
+  const necesitaCoordinar = envio === null || hayCotizacion;
 
   const existente = await getBrevoContact({ apiKey, email });
   const attrsPrevios = existente?.attributes || {};
@@ -116,6 +150,15 @@ export const handler = async (event) => {
         // Un pedido cuenta como uno, aunque lleve varios productos.
         PEDIDOS_TOTAL: (Number(attrsPrevios.PEDIDOS_TOTAL) || 0) + 1,
         ULTIMO_PEDIDO: hoyISO(),
+        // Dónde vive el cliente, para poder segmentar después ("vecinos de Usaquén",
+        // dónde se concentran los pedidos, si vale la pena ampliar el envío propio).
+        // La dirección exacta NO va a Brevo a propósito: un solo valor por campo se
+        // sobrescribe en cada pedido, y un envío a casa de la mamá quedaría como "su"
+        // dirección. El historial real de direcciones vive en la hoja, con su fecha.
+        // Si el campo llega vacío no se pisa el que ya estaba.
+        ...(ciudad ? { CIUDAD: ciudad === 'bogota' ? 'Bogotá' : ciudadOtra || 'Otra ciudad' } : {}),
+        ...(localidad ? { LOCALIDAD: nombreLocalidad(localidad) } : {}),
+        ...(barrio ? { BARRIO: barrio } : {}),
       },
     });
   } catch (err) {
@@ -136,15 +179,27 @@ export const handler = async (event) => {
     productos: descripcionCorta,
     subtotal,
     envio: envio === null ? '' : envio,
-    total: esBogota && !hayCotizacion ? total : '',
-    zona: ENTREGA_LABEL[entrega] || 'A coordinar',
-    direccion,
+    total: envio !== null && !hayCotizacion ? total : '',
+    zona: entregaTexto,
+    direccion: direccionCompleta,
     notas,
-    pago: esBogota && !hayCotizacion ? 'En línea (confirmar en Mercado Pago)' : 'Por coordinar',
+    pago: envio !== null && !hayCotizacion ? 'En línea (confirmar en Mercado Pago)' : 'Por coordinar',
+    // Los mismos datos, pero cada uno en su columna, para poder filtrar y ordenar
+    // ("todos los de Suba", "cuántos pedidos van a Cedritos"). La columna Dirección
+    // de arriba sigue llevando todo junto, que es lo que se lee para despachar.
+    // ⚠️ Estas columnas van DESPUÉS de Pago (la 14) a propósito: el webhook escribe
+    // en COL_PAGO = 14 y meterlas antes lo rompería en silencio.
+    ciudad: ciudad === 'bogota' ? 'Bogotá' : ciudadOtra || (ciudad ? 'Otra ciudad' : ''),
+    localidad: nombreLocalidad(localidad),
+    barrio,
+    tipoLugar: nombreTipoLugar(tipoLugar),
+    unidad,
+    indicaciones,
+    recibe,
   });
 
   const tabla = lineas.length > 0
-    ? tablaPedidoHtml({ lineas, subtotal, envio, total, entrega, hayCotizacion })
+    ? tablaPedidoHtml({ lineas, subtotal, envio, total, entrega: entregaTexto, hayCotizacion })
     : `<p style="font-size:14px;color:#201a12;">${descripcionCorta}</p>`;
 
   const encabezadoPedido = numeroPedido
@@ -188,17 +243,17 @@ export const handler = async (event) => {
       recipients: notifyRecipients,
       senderEmail: process.env.BREVO_SENDER_EMAIL_INTERNO || process.env.BREVO_SENDER_EMAIL,
       senderName: process.env.BREVO_SENDER_NAME_INTERNO || process.env.BREVO_SENDER_NAME,
-      subject: `Pedido ${numeroPedido || 'nuevo'}: ${nombre || 'Sin nombre'} — ${esBogota ? formatCOP(total) : 'a cotizar'}`,
+      subject: `Pedido ${numeroPedido || 'nuevo'}: ${nombre || 'Sin nombre'} — ${envio !== null && !hayCotizacion ? formatCOP(total) : 'a cotizar'}`,
       htmlContent: `
         ${encabezadoPedido}
-        <p style="font-size:15px;"><strong>${nombre}</strong> — ${ENTREGA_LABEL[entrega] || 'A coordinar'}</p>
+        <p style="font-size:15px;"><strong>${nombre}</strong> — ${entregaTexto}</p>
         ${tabla}
         <p style="font-size:14px;"><strong>Correo:</strong> ${email}<br />
         <strong>WhatsApp:</strong> ${whatsappLead || 'no dejó'}</p>
-        ${direccion ? `<p style="font-size:14px;"><strong>Dirección:</strong> ${direccion}</p>` : ''}
+        ${direccionCompleta ? `<p style="font-size:14px;"><strong>Dirección:</strong> ${direccionCompleta}</p>` : ''}
         ${notas ? `<p style="font-size:14px;"><strong>Notas:</strong> ${notas}</p>` : ''}
         ${
-          esBogota && !hayCotizacion
+          envio !== null && !hayCotizacion
             ? '<p style="font-size:13px;color:#7a6c53;">Pedido de Bogotá con precio cerrado: debería venir con pago en línea. Confirma en el panel de Mercado Pago buscando el número de pedido antes de despachar.</p>'
             : '<p style="font-size:13px;color:#a86a2e;">Este pedido NO se cobró en línea: hay que cotizar y coordinar por WhatsApp.</p>'
         }
