@@ -35,6 +35,24 @@ function escapar(texto) {
 }
 
 /**
+ * URL de la miniatura JPG que va en los correos.
+ *
+ * ⚠️ Se nombra por el ARCHIVO de la foto, NO por el slug del producto, porque así la
+ * genera scripts/generar-miniaturas-correo.mjs (recorre la carpeta de fotos, no el
+ * catálogo). Los dos nombres coinciden solo por casualidad en la mayoría de productos.
+ *
+ * Cuando se sube una foto desde /admin, Decap conserva el nombre del archivo original,
+ * que casi nunca es el slug: el producto "corazones-tapa-corcho" quedó con la foto
+ * "velas-corcho.webp". Derivar la miniatura del slug pedía una imagen inexistente y el
+ * correo del pedido llegaba con el cuadro roto. Visto en producción el 2026-10-12.
+ */
+function miniaturaDeCorreo(imagen) {
+  if (!imagen) return null;
+  const archivo = String(imagen).split('/').pop().replace(/\.[^.]+$/, '');
+  return archivo ? `${SITIO}/images/productos/correo/${archivo}.jpg` : null;
+}
+
+/**
  * Toma lo que mandó el navegador y lo resuelve contra el catálogo real.
  *
  * El navegador solo dice QUÉ quiere (slug, presentación, cantidad). El nombre, el
@@ -71,7 +89,7 @@ export function resolverPedido(crudo, productos) {
       cantidad,
       subtotal: precio === undefined ? null : precio * cantidad,
       // La miniatura JPG, no la WebP del sitio: WebP se ve rota en Outlook.
-      imagen: producto.imagen ? `${SITIO}/images/productos/correo/${producto.slug}.jpg` : null,
+      imagen: miniaturaDeCorreo(producto.imagen),
     });
   }
 
