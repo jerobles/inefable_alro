@@ -22,14 +22,14 @@ El resultado: una vela que se ve "gastada" mucho antes de tiempo, con cera despe
 La regla es simple, pero requiere un poco de paciencia:
 
 - Enciende la vela y **déjala quemar hasta que toda la superficie se haya derretido de borde a borde**, no solo el centro.
-- Esto suele tomar entre **1 y 2 horas**, dependiendo del diámetro del envase. En una vela como Sempiterna, con su frasco ancho de 300 gr, puede acercarse a las 2 horas.
+- Esto suele tomar entre **1 y 2 horas**, dependiendo del diámetro del envase. En una vela grande como la [Limonada de 350 ml](/tienda/limonada/), puede acercarse a las 2 horas.
 - No la apagues antes de que el charco líquido llegue a las paredes de vidrio. Si lo haces, corres el riesgo de iniciar el túnel desde el primer día.
 
 Piensa en este primer encendido como un depósito: cada milímetro de cera derretida hasta el borde es cera que vas a poder disfrutar después, encendido tras encendido.
 
 ## Una señal que te ayuda a calcular el tiempo
 
-Una forma práctica de saberlo sin estar pendiente todo el tiempo: fíjate en el vidrio. Cuando ves que la cera derretida ya toca la pared del frasco en todo el contorno, ya cumpliste el ritual. En velas más anchas, como las de línea Manifestación o Sempiterna, puede tardar más que en un corcho pequeño o una vela de 60 gr como Rosa Sola — el tamaño del envase manda.
+Una forma práctica de saberlo sin estar pendiente todo el tiempo: fíjate en el vidrio. Cuando ves que la cera derretida ya toca la pared del frasco en todo el contorno, ya cumpliste el ritual. En las velas grandes, como la [Limonada de 350 ml](/tienda/limonada/) o las [aromáticas decoradas de postre](/tienda/) de 300 ml, puede tardar bastante más que en una de 110 ml o en un [Mini Cheesecake de 60 ml](/tienda/mini-cheesecake/) — el tamaño del envase manda.
 
 ## Y si ya tiene un pequeño túnel, ¿se puede corregir?
 
