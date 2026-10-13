@@ -167,9 +167,17 @@ function actualizarPago(datos) {
 }
 
 // Abrir la URL en el navegador cae aquí. Sirve para comprobar, sin hacer un pedido,
-// que la implementación quedó bien publicada.
+// que la implementación quedó bien publicada Y que es la versión correcta.
+//
+// El "columnas" es la clave: si dice 14, está corriendo la versión vieja — o sea que
+// pegaste el código pero NO creaste una implementación nueva, que es el error más
+// común. Tiene que decir 21.
 function doGet() {
-  return responder({ ok: true, mensaje: 'La hoja está lista para recibir pedidos.' });
+  return responder({
+    ok: true,
+    mensaje: 'La hoja está lista para recibir pedidos.',
+    columnas: ENCABEZADOS.length,
+  });
 }
 
 function responder(obj) {
@@ -198,12 +206,19 @@ Reemplaza `PEGA-AQUI-TU-CLAVE` por la clave del paso 2 y guarda (💾).
 Pega esa URL en el navegador y ábrela. Deberías ver exactamente esto:
 
 ```json
-{"ok":true,"mensaje":"La hoja está lista para recibir pedidos."}
+{"ok":true,"mensaje":"La hoja está lista para recibir pedidos.","columnas":21}
 ```
+
+> **Mira el número de `columnas`.** Si dice **21**, está corriendo la versión nueva.
+> Si dice **14**, pegaste el código pero **no creaste una implementación nueva** —
+> Google sigue ejecutando la versión anterior. Es el error más común y no avisa de
+> ninguna forma: los pedidos siguen entrando, solo que sin las columnas nuevas.
+> Vuelve al paso 4 y usa **Implementar → Nueva implementación** (no basta con guardar).
 
 | Lo que ves | Qué pasa |
 |---|---|
-| El `{"ok":true…}` | Perfecto, sigue al paso 5 |
+| El `{"ok":true…}` con `"columnas":21` | Perfecto, sigue al paso 5 |
+| `"columnas":14` | El código es viejo: falta crear la **implementación nueva** |
 | Una pantalla de Google pidiendo iniciar sesión o dar permiso | La implementación **no quedó pública**. Vuelve al paso 4 y pon "Quién tiene acceso: Cualquier usuario" |
 | "Se requiere autorización" | Falta autorizar el script. Vuelve a **Implementar** y acepta los permisos |
 | Un error de página no encontrada | La URL está mal copiada, o es la de `/dev` en vez de la de `/exec` |

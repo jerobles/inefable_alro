@@ -223,7 +223,13 @@ export const handler = async (event) => {
       ${
         necesitaCoordinar
           ? '<p style="font-size:14px;color:#201a12;">Te escribimos por WhatsApp para confirmar el valor final y coordinar la entrega.</p>'
-          : '<p style="font-size:14px;color:#201a12;">Ya lo estamos preparando. Te avisamos apenas salga hacia tu dirección.</p>'
+          : // Este correo sale al ENVIAR el formulario, o sea ANTES de que la persona
+            // termine de pagar. Antes decía "ya lo estamos preparando", y eso le llegaba
+            // igual a quien abandonaba el checkout: prometía algo que no estaba pasando.
+            // Ahora dice la verdad y sirve de recordatorio para volver a terminarlo.
+            // Cuando el pago se aprueba, el webhook manda el correo de "Pago confirmado".
+            `<p style="font-size:14px;color:#201a12;">Falta un último paso: <strong>completar el pago</strong>. Apenas se confirme te llega otro correo y ahí sí entra a producción.</p>
+             <p style="font-size:14px;color:#201a12;">¿Se te interrumpió el pago o cerraste la ventana sin querer? Escríbenos por WhatsApp con el número de tu pedido y lo terminamos contigo.</p>`
       }
       <p style="font-size:14px;color:#201a12;">¡Gracias por escoger Inefable ALRO! 🕯️</p>
       <p style="font-size:12px;color:#7a6c53;">Si algo del pedido no está bien, respóndenos este correo y lo ajustamos.</p>
@@ -254,7 +260,11 @@ export const handler = async (event) => {
         ${notas ? `<p style="font-size:14px;"><strong>Notas:</strong> ${notas}</p>` : ''}
         ${
           envio !== null && !hayCotizacion
-            ? '<p style="font-size:13px;color:#7a6c53;">Pedido de Bogotá con precio cerrado: debería venir con pago en línea. Confirma en el panel de Mercado Pago buscando el número de pedido antes de despachar.</p>'
+            // Ya no manda a confirmar a mano en Mercado Pago: desde que el webhook
+            // funciona (validado el 2026-10-12), la columna Pago de la hoja pasa sola
+            // a "Pagado ✓". Si sigue diciendo "En línea (confirmar…)", es que esa
+            // persona no terminó de pagar — que es justo lo que antes no se podía saber.
+            ? '<p style="font-size:13px;color:#7a6c53;">Pedido de Bogotá con precio cerrado. <strong>Revisa la columna Pago de la hoja antes de despachar:</strong> pasa sola a “Pagado ✓” cuando Mercado Pago confirma. Si sigue en “En línea (confirmar…)”, el pago no se completó.</p>'
             : '<p style="font-size:13px;color:#a86a2e;">Este pedido NO se cobró en línea: hay que cotizar y coordinar por WhatsApp.</p>'
         }
         ${waLink ? `<p><a href="${waLink}" style="display:inline-block;background:#25D366;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">Escríbele por WhatsApp →</a></p>` : ''}

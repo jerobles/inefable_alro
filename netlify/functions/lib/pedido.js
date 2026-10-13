@@ -6,11 +6,26 @@
 
 export const SITIO = 'https://inefablealro.com';
 
+// Claves del formulario VIEJO (zona declarada). Hoy producto-sync manda el texto ya
+// armado desde lib/zonas.js ("Bogotá — Usaquén"), pero una página cacheada en el
+// navegador de alguien puede seguir mandando estas claves un buen rato.
 export const ENTREGA_LABEL = {
   'bogota-norte': 'Norte de Bogotá (envío gratis)',
   'bogota-resto': 'Resto de Bogotá (domicilio)',
   otra: 'Otra ciudad (envío por coordinar)',
 };
+
+/**
+ * Qué mostrar en "Entrega:" del correo.
+ *
+ * Acepta las dos formas: una clave vieja, que se traduce, o el texto ya legible que
+ * manda el formulario nuevo, que se usa tal cual. Sin esto, el texto nuevo no coincidía
+ * con ninguna clave y el correo decía "A coordinar" en pedidos que sí tenían zona —
+ * pasó en producción con el pedido IA-261012-34GF (2026-10-12).
+ */
+export function etiquetaEntrega(entrega) {
+  return ENTREGA_LABEL[entrega] || entrega || 'A coordinar';
+}
 
 // Según cómo empaquete Netlify, un módulo de datos importado llega como el arreglo
 // directo o envuelto en un objeto con .default. Confiar en una sola de esas formas
@@ -160,7 +175,7 @@ export function tablaPedidoHtml({ lineas, subtotal, envio, total, entrega, hayCo
         )}
       </tbody>
     </table>
-    <p style="margin:0;font-size:13px;color:#7a6c53;">Entrega: ${escapar(ENTREGA_LABEL[entrega] || 'A coordinar')}</p>
+    <p style="margin:0;font-size:13px;color:#7a6c53;">Entrega: ${escapar(etiquetaEntrega(entrega))}</p>
     ${
       hayCotizacion
         ? '<p style="margin:10px 0 0;font-size:13px;color:#a86a2e;">Tu pedido incluye productos que se cotizan según lo que necesites, así que ese valor todavía no está incluido. Te escribimos con el precio final antes de cobrar nada.</p>'
