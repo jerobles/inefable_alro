@@ -277,9 +277,17 @@ solo debe consultar y marcar estados, dale permiso de **Editor** sobre la hoja p
     antes de despachar.**
   - El sitio **nunca toca la columna Estado**, solo la de Pago: si ya moviste el pedido a
     "Despachado", un aviso tardío no te lo devuelve atrás.
-- **Si modificas el script después**, no basta con guardar: hay que ir a
-  **Implementar → Administrar implementaciones**, editar (✏️) y elegir
-  **Versión: Nueva versión**. Si no, sigue corriendo la versión vieja.
+- ⚠️ **Si modificas el script después, hay DOS botones parecidos y solo uno sirve.**
+  Guardar (💾) no basta: Google sigue ejecutando la versión publicada.
+  - ✅ **Implementar → Administrar implementaciones → ✏️ → Versión: Nueva versión.**
+    Mantiene **la misma URL**, así que el sitio sigue funcionando sin tocar nada.
+  - ❌ **Implementar → Nueva implementación** crea **una URL distinta**. La vieja —la
+    que tiene configurada el sitio— se queda corriendo el código viejo, y los pedidos
+    siguen entrando como si nada. Pasó el 2026-10-12 y costó un rato entenderlo:
+    el log decía *"Pedido registrado en la hoja"* sin ningún error, porque de verdad
+    se estaba registrando… en la versión vieja.
+  - Para salir de dudas: abre la URL de `HOJA_PEDIDOS_URL` en el navegador y mira el
+    número de `columnas` que responde.
 - **Si la hoja falla** (URL mal copiada, implementación no pública, Google caído),
   el pedido **no se pierde**: sigue llegando a tu correo, a Netlify y a Brevo, y el
   correo interno incluye un aviso de que esa fila no se pudo escribir.
