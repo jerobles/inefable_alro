@@ -238,6 +238,19 @@ export const handler = async (event) => {
 
   const notifyRecipients = parseRecipients(process.env.BUSINESS_NOTIFY_EMAIL);
   if (notifyRecipients.length > 0) {
+    // Botón para abrir la hoja de pedidos desde el correo, que es donde se confirma el
+    // pago antes de despachar. Va en ámbar, no en verde: el verde es el de WhatsApp,
+    // que sigue siendo la acción principal del aviso.
+    //
+    // La URL es la de la HOJA (la que se abre en el navegador), no la del Apps Script
+    // (`HOJA_PEDIDOS_URL`, que termina en /exec): son dos direcciones distintas y
+    // confundirlas manda a una pantalla en blanco. Si la variable no está, no se
+    // muestra el botón y el correo sale igual de completo.
+    const enlaceHoja = process.env.HOJA_PEDIDOS_ENLACE || '';
+    const botonHoja = enlaceHoja
+      ? `<p style="margin:12px 0 0;"><a href="${enlaceHoja}" style="display:inline-block;background:#c98a45;color:#201a12;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;">Abrir la hoja de pedidos →</a></p>`
+      : '';
+
     const waLink = whatsappLead
       ? `https://wa.me/${whatsappLead.replace('+', '')}?text=${encodeURIComponent(
           `¡Hola ${nombre}! Te escribo de Inefable ALRO por tu pedido${numeroPedido ? ` ${numeroPedido}` : ''}.`
@@ -267,6 +280,7 @@ export const handler = async (event) => {
             ? '<p style="font-size:13px;color:#7a6c53;">Pedido de Bogotá con precio cerrado. <strong>Revisa la columna Pago de la hoja antes de despachar:</strong> pasa sola a “Pagado ✓” cuando Mercado Pago confirma. Si sigue en “En línea (confirmar…)”, el pago no se completó.</p>'
             : '<p style="font-size:13px;color:#a86a2e;">Este pedido NO se cobró en línea: hay que cotizar y coordinar por WhatsApp.</p>'
         }
+        ${botonHoja}
         ${waLink ? `<p><a href="${waLink}" style="display:inline-block;background:#25D366;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">Escríbele por WhatsApp →</a></p>` : ''}
         ${errorHoja ? `<p style="margin-top:16px;padding:12px;background:#fff4e5;border-left:3px solid #c98a45;font-size:13px;">⚠️ Este pedido <strong>no quedó en la hoja de cálculo</strong> (${errorHoja}). Agrégalo a mano cuando puedas — los datos de arriba son la referencia.</p>` : ''}
         ${errorContacto ? `<p style="margin-top:20px;padding:12px;background:#fff4e5;border-left:3px solid #c98a45;font-size:13px;">⚠️ Este pedido <strong>no se pudo guardar en Brevo</strong>, así que no aparecerá en la lista de contactos. Los datos de arriba son la única copia — agrégalo a mano si lo necesitas. Motivo: ${errorContacto.message}</p>` : ''}

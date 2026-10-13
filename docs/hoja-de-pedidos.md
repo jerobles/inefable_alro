@@ -236,6 +236,14 @@ En **Netlify → Site configuration → Environment variables**, agrega dos:
 |---|---|
 | `HOJA_PEDIDOS_URL` | La URL que termina en `/exec` |
 | `HOJA_PEDIDOS_TOKEN` | La clave del paso 2, exactamente igual |
+| `HOJA_PEDIDOS_ENLACE` | *(opcional)* La URL **de la hoja**, la que se abre en el navegador |
+
+> **Ojo, son dos direcciones distintas.** `HOJA_PEDIDOS_URL` es la del script
+> (termina en `/exec`) y es la que usa el sitio para escribir. `HOJA_PEDIDOS_ENLACE`
+> es la de la hoja de cálculo normal (la que ves en la barra del navegador cuando la
+> tienes abierta, con `docs.google.com/spreadsheets/...`) y solo sirve para poner un
+> botón **"Abrir la hoja de pedidos"** en el correo interno de cada pedido. Si no la
+> configuras, el correo sale igual, solo que sin ese botón.
 
 Después, **Deploys → Trigger deploy** para que la función las tome.
 
