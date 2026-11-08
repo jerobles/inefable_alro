@@ -12,5 +12,5 @@ incluye:
   - Snacks y café durante la sesión
   - Kit de trabajo para llevar a casa
 lugar: "Calle 155 #14-80, Bogotá"
-activo: true
+activo: false
 ---

@@ -15,7 +15,13 @@ const talleres = defineCollection({
   type: 'content',
   schema: z.object({
     titulo: z.string(),
-    fecha: z.date(),
+    // Opcional a propósito (2026-11-08). Hay dos clases de taller:
+    //  - con fecha: una convocatoria puntual, que /curso esconde sola al vencerse.
+    //  - sin fecha: disponibilidad permanente, el cliente agenda su día por WhatsApp.
+    // Antes la fecha era obligatoria, así que un taller permanente no se podía
+    // representar: tocaba inventarle un día, que la tarjeta mostraba como si fuera
+    // EL día del taller y que además caducaba solo.
+    fecha: z.date().optional(),
     precio: z.number(),
     notaPrecio: z.string().optional().default('todo incluido'),
     duracion: z.string().optional(),

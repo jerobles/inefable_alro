@@ -14,5 +14,5 @@ incluye:
   - Estación de café
   - Tu vela de postre terminada, personalizada a tu gusto
 lugar: "Calle 155 #14-80, Bogotá"
-activo: true
+activo: false
 ---

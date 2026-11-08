@@ -9,16 +9,26 @@ const allTalleres = await getCollection('talleres');
 // se parsean como medianoche UTC) sin desfases por zona horaria del build.
 const hoyUTC = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
 
+// Un taller SIN fecha es de disponibilidad permanente (el cliente agenda su día), así
+// que nunca se vence: solo se oculta bajando "activo" en /admin.
 const talleres = allTalleres
-  .filter((t) => t.data.activo !== false && t.data.fecha >= hoyUTC)
-  .sort((a, b) => a.data.fecha.getTime() - b.data.fecha.getTime());
+  .filter((t) => t.data.activo !== false && (!t.data.fecha || t.data.fecha >= hoyUTC))
+  .sort((a, b) => {
+    // Los de fecha fija van primero: tienen cupo y se vencen, así que la urgencia es
+    // real. Los permanentes quedan después, en el orden en que los lee la colección.
+    if (a.data.fecha && b.data.fecha) return a.data.fecha.getTime() - b.data.fecha.getTime();
+    if (a.data.fecha) return -1;
+    if (b.data.fecha) return 1;
+    return 0;
+  });
 
 const formatFecha = (d: Date) =>
   d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 
 const formatPrecio = (n: number) => n.toLocaleString('es-CO');
 
-const tallerOptionLabel = (t: (typeof talleres)[number]) => `${formatFecha(t.data.fecha)} — ${t.data.titulo}`;
+const tallerOptionLabel = (t: (typeof talleres)[number]) =>
+  t.data.fecha ? `${formatFecha(t.data.fecha)} — ${t.data.titulo}` : t.data.titulo;
 
 const commonEvent = {
   '@context': 'https://schema.org',
@@ -43,19 +53,39 @@ const commonEvent = {
   },
 };
 
-const eventsSchema = talleres.map((t) => ({
-  ...commonEvent,
-  name: `${t.data.titulo} — Inefable ALRO`,
-  description: t.data.descripcion,
-  startDate: t.data.fecha.toISOString().slice(0, 10),
-  offers: {
+const eventsSchema = talleres.map((t) => {
+  const offers = {
     '@type': 'Offer',
     price: String(t.data.precio),
     priceCurrency: 'COP',
     availability: 'https://schema.org/InStock',
-    url: new URL('/curso', Astro.site).href,
-  },
-}));
+    url: new URL('/curso/', Astro.site).href,
+  };
+
+  // Un taller de disponibilidad permanente NO es un Event: schema.org exige startDate,
+  // y rellenarlo con una fecha inventada sería declararle a Google un dato falso que
+  // además caduca solo. Para esos se declara un Service, que es válido y honesto.
+  if (!t.data.fecha) {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      serviceType: 'Taller de elaboración de velas artesanales',
+      name: `${t.data.titulo} — Inefable ALRO`,
+      description: t.data.descripcion,
+      areaServed: { '@type': 'City', name: 'Bogotá' },
+      provider: { '@type': 'Organization', name: 'Inefable ALRO', url: Astro.site?.href },
+      offers,
+    };
+  }
+
+  return {
+    ...commonEvent,
+    name: `${t.data.titulo} — Inefable ALRO`,
+    description: t.data.descripcion,
+    startDate: t.data.fecha.toISOString().slice(0, 10),
+    offers,
+  };
+});
 
 // Fotos de talleres pasados en public/images/talleres/. El usuario confirmó tener
 // autorización de las asistentes para publicar su imagen (2026-08-22).
@@ -63,7 +93,7 @@ const fotosGaleria = Array.from({ length: 20 }, (_, i) => i + 1);
 
 const metaDescripcion =
   talleres.length > 0
-    ? `Reserva tu cupo en nuestros próximos talleres: ${talleres.map((t) => `${t.data.titulo} (${formatFecha(t.data.fecha)})`).join(' y ')}. Un espacio para tu creatividad y tus sentidos.`
+    ? `Reserva tu cupo en nuestros talleres: ${talleres.map((t) => (t.data.fecha ? `${t.data.titulo} (${formatFecha(t.data.fecha)})` : t.data.titulo)).join(' y ')}. Un espacio para tu creatividad y tus sentidos.`
     : 'Talleres de velas de Inefable ALRO. Escríbenos por WhatsApp para conocer las próximas fechas.';
 ---
 
@@ -88,7 +118,9 @@ const metaDescripcion =
       <div class="container curso-talleres__grid">
         {talleres.map((t) => (
           <article class="taller-card reveal">
-            <span class="taller-card__badge">{formatFecha(t.data.fecha)}</span>
+            <span class="taller-card__badge">
+              {t.data.fecha ? formatFecha(t.data.fecha) : 'Agenda tu fecha'}
+            </span>
             <h2>{t.data.titulo}</h2>
             <p class="taller-card__desc">{t.data.descripcion}</p>
             {t.data.incluye.length > 0 && (
