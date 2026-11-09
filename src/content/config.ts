@@ -28,7 +28,13 @@ const talleres = defineCollection({
     horario: z.string().optional(),
     descripcion: z.string(),
     incluye: z.array(z.string()).optional().default([]),
-    lugar: z.string().optional().default('Calle 155 #14-80, Bogotá'),
+    // Sector, no dirección exacta: los talleres se hacen en una vivienda. Quien va a
+    // pagar necesita saber qué tan lejos le queda (eso lo dice "Calle 155"); el número
+    // y el conjunto se mandan por WhatsApp al confirmar el cupo.
+    lugar: z
+      .string()
+      .optional()
+      .default('Norte de Bogotá, sector Calle 155 · Dirección exacta al confirmar tu cupo'),
     activo: z.boolean().optional().default(true),
   }),
 });

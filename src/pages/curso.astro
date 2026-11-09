@@ -39,10 +39,14 @@ const commonEvent = {
   location: {
     '@type': 'Place',
     name: 'Inefable ALRO',
+    // Sin streetAddress a propósito: los talleres se hacen en una vivienda y la
+    // dirección exacta se entrega por WhatsApp al confirmar el cupo. Un dato
+    // estructurado es lo que Google publica e indexa, así que lo que no va en la
+    // tarjeta tampoco puede ir acá.
     address: {
       '@type': 'PostalAddress',
-      streetAddress: 'Calle 155 #14-80',
       addressLocality: 'Bogotá',
+      addressRegion: 'Bogotá D.C.',
       addressCountry: 'CO',
     },
   },

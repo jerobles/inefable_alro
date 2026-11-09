@@ -38,7 +38,7 @@ collections:
       - { label: "Horario", name: "horario", widget: "string", required: false, hint: "Ej: '9:00 a. m.–1:00 p. m. y 2:00 p. m.–6:00 p. m.', o 'Escríbenos por WhatsApp para confirmar disponibilidad'" }
       - { label: "Descripción", name: "descripcion", widget: "text" }
       - { label: "Qué incluye", name: "incluye", widget: "list" }
-      - { label: "Lugar", name: "lugar", widget: "string", default: "Bogotá — te compartimos la dirección exacta al confirmar tu cupo", hint: "Este texto se publica en la página, a la vista de cualquiera. Si el taller es en una vivienda, mejor no poner la dirección acá y pasarla por WhatsApp al confirmar." }
+      - { label: "Lugar", name: "lugar", widget: "string", default: "Norte de Bogotá, sector Calle 155 · Dirección exacta al confirmar tu cupo", hint: "Este texto se publica en la página, a la vista de cualquiera. Como el taller es en una vivienda, deja solo el sector: la dirección exacta se manda por WhatsApp al confirmar el cupo." }
       - { label: "Activo (se muestra en la página)", name: "activo", widget: "boolean", default: true, hint: "Desactívalo para ocultar un taller sin borrarlo" }
       - { label: "Notas internas (opcional, no se publica)", name: "body", widget: "markdown", required: false }
 

@@ -2,6 +2,7 @@
 titulo: Taller de Vela Personalizada
 precio: 100000
 notaPrecio: todo incluido
+duracion: 2 horas
 horario: Disponibilidad todos los días, en la mañana o en la tarde
 descripcion: Elige tu estilo —tipo postre o tipo cóctel— y elabora una vela
   hiperrealista, personalizada a tu gusto, mientras disfrutas de una buena
@@ -12,6 +13,6 @@ incluye:
   - Estación de café y snacks durante la sesión
   - Guía personalizada paso a paso
   - Tu vela terminada, lista para llevar
-lugar: Bogotá — te compartimos la dirección exacta al confirmar tu cupo
+lugar: Norte de Bogotá, sector Calle 155 · Dirección exacta al confirmar tu cupo
 activo: true
 ---

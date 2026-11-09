@@ -13,6 +13,6 @@ incluye:
   - Estación de café y snacks para compartir durante la sesión
   - Técnica guiada paso a paso, con temperaturas y proporciones para un acabado profesional
   - Los tres proyectos que elaboras, para llevártelos a casa
-lugar: Bogotá — te compartimos la dirección exacta al confirmar tu cupo
+lugar: Norte de Bogotá, sector Calle 155 · Dirección exacta al confirmar tu cupo
 activo: true
 ---
