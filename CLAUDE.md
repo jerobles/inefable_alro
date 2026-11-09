@@ -85,9 +85,11 @@ astro.config.mjs             ← incluye integración @astrojs/sitemap (fijar en
 
 - WhatsApp: +57 302 110 1969 → usado en `WhatsAppButton.astro`, footer, curso, privacidad, términos (cambió desde +57 320 807 6828, actualizado 2026-08-21)
 - Instagram: instagram.com/inefable.alro
-- Talleres (agosto 2026, Calle 155 #14-80, Bogotá) — ojo: van a seguir cambiando mes a mes, verificar con el usuario antes de asumir que siguen vigentes:
-  - 22 ago: Taller de Creación de Velas de Postre, $100.000 COP, 2h, horario a confirmar por WhatsApp
-  - 29 ago: Taller de Velas (el genérico de siempre), $180.000 COP, turnos 9am-1pm y 2pm-6pm
+- Talleres (desde 2026-11-08): **sin fecha fija, disponibilidad todos los días**, el cliente agenda por WhatsApp. Se hacen en una vivienda — apartamento en el Conjunto Residencial Caminos de Magdala, Calle 155 #14-80. ⚠️ **Esa dirección NO se publica en el sitio**, ver 0.A.
+  - Masterclass de Velas Artesanales — $180.000 COP, 4 h, velas desde cero, 3 proyectos
+  - Taller de Vela Personalizada — $100.000 COP, 2 h, 1 vela tipo postre o cóctel
+  - Los dos de agosto quedaron `activo: false` (no borrados), así salen también del archivo de precios que usan las funciones de pago.
+  - La info la pasó Katherine Aldana por WhatsApp el 2026-10-13; el "qué incluye" salió del post de Instagram del mismo día (`/p/DecT3ywIM1d/`).
 - Logo: badge circular "Inefable ALRO — Ilumina tu espacio / Hecho a mano — Est. 2026"
 
 ## Estado actual (actualizado 2026-07-05)
@@ -119,6 +121,21 @@ Proyecto compila sin errores (`npm run build`) y **ya está desplegado y en vivo
 - `astro.config.mjs` → `site` actualizado a `https://inefablealro.com` (antes tenía `https://inefable.alro.co`, un dominio inventado que nunca existió) — de ahí salen canonical, og:url, sitemap y JSON-LD
 
 ## Pendiente / próximos pasos
+
+0.A. **✅ TALLERES DE DISPONIBILIDAD PERMANENTE — LA FECHA PASÓ A SER OPCIONAL (2026-11-08, en vivo).**
+   - **Qué cambió el modelo:** la colección **exigía** una fecha y `/curso` escondía solos los vencidos. Eso servía para "convocatoria con día fijo". Los talleres nuevos se agendan **cuando el cliente quiera**, así que no hay fecha que poner, y ponerle una inventada habría mostrado ese día en la tarjeta **como si fuera EL día del taller**, además de darle a Google un dato falso que caduca solo.
+   - **Cómo quedó:** `fecha` es `z.date().optional()`. Un taller sin fecha nunca se vence (solo se oculta con `activo: false`); los que **sí** tienen fecha se ordenan **primero**, porque tienen cupo y caducan. La tarjeta muestra **"Agenda tu fecha"** en vez de un día. Las dos clases conviven, no se perdió nada.
+   - **JSON-LD:** un taller sin fecha se declara **`Service`**, no `Event` — `Event` exige `startDate`. No reintroducir un `Event` con fecha de relleno.
+   - ⚠️ **La dirección exacta NO se publica, y es una decisión, no un olvido.** Los talleres son en una vivienda. Lo que el comprador necesita saber **antes** de pagar es *qué tan lejos le queda* (eso lo responde "Calle 155"); *cuál puerta* no hace falta hasta que reserve, y se manda por WhatsApp. Por eso:
+     - `lugar` por defecto = `"Norte de Bogotá, sector Calle 155 · Dirección exacta al confirmar tu cupo"`.
+     - El `PostalAddress` del JSON-LD **ya no lleva `streetAddress`**: un dato estructurado es justo lo que Google publica e indexa, así que lo que no va en la tarjeta tampoco puede ir ahí.
+     - Verificado sobre el sitio compilado: `14-80` y `Magdala` aparecen **0 veces** en las 52 páginas. Si alguna vez vuelven a aparecer, es un error.
+   - **`/admin`:** la fecha dejó de ser obligatoria (con hint explicando cuándo dejarla vacía), el slug ya **no** lleva la fecha de prefijo (`{{slug}}` a secas) y el default de "Lugar" ya no publica una dirección.
+   - **El pago quedó cobrando el 100%.** Se evaluó cobrar **50% al reservar y 50% el día del taller** (idea del usuario, para dar confianza) y **se aplazó a propósito**, por dos razones que conviene no olvidar:
+     1. El usuario eligió cobrar completo buscando **menos trabajo manual**; el 50/50 devuelve ese trabajo por la otra puerta (cobrar el saldo en persona y llevar la cuenta de quién debe).
+     2. **El camino de pago de talleres nunca ha corrido.** Montarle encima una división en dos pagos haría imposible saber, si algo falla, si falló la división o el camino base.
+     - **Señal para retomarlo:** si la gente escribe por WhatsApp pero no paga. Entre tanto se puede probar la hipótesis **sin código**, ofreciendo el abono por WhatsApp con un link de pago manual (ojo: esa cuenta de Mercado Pago la maneja un tercero, no el usuario).
+     - Si se construye, **lo difícil no es la cuenta, es la redacción**: correos, `/pago-confirmado` y la hoja tienen que decir sin ambigüedad "abonaste X, el saldo va el día del taller". Que alguien entienda que ya pagó todo es un problema con un cliente, no un bug.
 
 0.0. **✅ FLUJO DE ENTREGA REDISEÑADO E IMPLEMENTADO (2026-10-12).** Ver `netlify/functions/lib/zonas.js`, que es la **única fuente de verdad**: la importan el formulario del carrito (para pintar el desplegable) y las dos funciones del servidor (para cobrar y para registrar).
    - **La idea central, y es del usuario:** el desplegable ya **NO dice cuál opción es gratis**. Antes decía *"Norte de Bogotá — envío gratis"*, o sea que le señalaba al comprador cuál opción le ahorraba plata. Ahora muestra **solo nombres de localidad**; quién es gratis es información interna, y a quien viva en Usaquén le llega como sorpresa. Sin el premio a la vista, la gente pone su dirección real porque la necesita para recibir el pedido.
@@ -237,7 +254,7 @@ Proyecto compila sin errores (`npm run build`) y **ya está desplegado y en vivo
    - **Recordatorio de privacidad:** la foto de "Recordatorio Virgencita Presentación Especial" tiene el nombre real de un cliente y la fecha de un evento — el usuario confirmó tener autorización para usarla públicamente (2026-08-22). Si en el futuro se reemplaza esa foto, no hay que preguntar de nuevo salvo que cambie el contexto.
 0.9. **Pendientes del usuario (no van en la página, son tareas suyas).** Lista actualizada al cierre de la sesión del **2026-10-12**. Estado del sitio: **todo el circuito de compra está cerrado y validado en producción** — carrito, cobro con el envío calculado en el servidor, confirmación automática del pago, hoja de 21 columnas, CRM con zona, y los correos con el texto correcto en cada momento. **No queda nada técnico pendiente del lado del desarrollo**: lo de abajo son tareas del usuario o esperas de terceros.
    - ~~Reembolsar la compra de prueba~~ ✅ **hecho** (el usuario confirmó el reembolso el 2026-10-12).
-   - **Crear talleres con fecha futura** desde `/admin`: no hay ninguno vigente (los dos cargados son de agosto y `/curso` filtra los vencidos), así que esa página muestra el estado vacío, **no vende**, y el pago de talleres **nunca se ha podido probar**. Es el pendiente que más ventas está costando.
+   - ~~**Crear talleres con fecha futura** desde `/admin`~~ ✅ **resuelto el 2026-11-08**, aunque por otro camino del esperado: los talleres nuevos **no tienen fecha**, son de disponibilidad permanente. Ver 0.A. ⚠️ **El pago de talleres sigue sin ejercerse ni una sola vez** (ni con plata real ni con credenciales de prueba) — pero ahora por fin es posible, porque `/curso` volvió a mostrar talleres cobrables.
    - **Revisión legal** de `/privacidad` y `/terminos` con un abogado, y **registro de la base de datos en el RNBD de la SIC**. Las advertencias que decían esto en las páginas se retiraron el 2026-09-06 a pedido del usuario; el pendiente sigue vivo aquí. Ojo: ahora que se cobra en línea y la hoja de Google guarda direcciones, hay más datos personales en juego que cuando se redactaron.
    - **✅ WEBHOOK VALIDADO DE PUNTA A PUNTA CON PLATA REAL (2026-10-12).** El usuario hizo el pedido `IA-261012-P9X9` ($28.000) y confirmó que **la hoja pasó sola a "Pagado"**. Con eso el circuito de confirmación automática queda cerrado: ya no hace falta confirmar cada pago a mano en el panel de Mercado Pago antes de despachar. Los 3 pasos de configuración estaban hechos desde el 2026-09-11 (URL registrada, `MP_WEBHOOK_SECRET`, atributo `ULTIMO_PAGO`, Apps Script reimplementado).
      - El usuario **no administra la cuenta de Mercado Pago** (lo hace un tercero), así que no puede usar el simulador del panel. La validación tuvo que esperar a una venta real.
